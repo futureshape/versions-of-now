@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>crt-bbc-clock</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --page: #0d0e10;
+        --panel: #181a1f;
+        --panel-2: #22252b;
+        --line: #363b46;
+        --text: #f0f3f7;
+        --muted: #9aa3ae;
+        --clock-ink: #f4f7fb;
+        --clock-black: #000000;
+        --control-accent: #4870c7;
+        --focus: #d5a03a;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--page);
+        color: var(--text);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+
+      .app {
+        min-height: 100vh;
+        display: grid;
+        grid-template-rows: minmax(0, 1fr) auto;
+      }
+
+      .stage {
+        display: grid;
+        place-items: center;
+        min-height: min(78vh, 900px);
+        padding: clamp(8px, 2.5vw, 28px);
+        background: #050505;
+      }
+
+      .receiver {
+        width: min(100%, 1180px);
+        aspect-ratio: 4 / 3;
+      }
+
+      .receiver.wide {
+        aspect-ratio: 16 / 9;
+      }
+
+      svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      .clock-fill {
+        fill: var(--clock-ink);
+      }
+
+      .clock-stroke {
+        stroke: var(--clock-ink);
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) minmax(220px, 1fr);
+        gap: 14px;
+        padding: 16px;
+        border-top: 1px solid var(--line);
+        background: var(--page);
+      }
+
+      .panel {
+        display: grid;
+        gap: 14px;
+        align-content: start;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+      }
+
+      .panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 1.05rem;
+        line-height: 1.1;
+      }
+
+      h2 {
+        font-size: 0.95rem;
+      }
+
+      p,
+      label,
+      output {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .readout {
+        color: var(--text);
+        font-size: 1.2rem;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .button-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      button {
+        min-height: 36px;
+        border: 0;
+        border-radius: 6px;
+        padding: 8px 12px;
+        background: var(--control-accent);
+        color: white;
+        cursor: pointer;
+      }
+
+      button.secondary {
+        background: var(--panel-2);
+        color: var(--text);
+      }
+
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 2px;
+      }
+
+      label {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: 10px;
+      }
+
+      input[type="range"] {
+        width: 100%;
+        accent-color: var(--control-accent);
+      }
+
+      input[type="time"],
+      select {
+        width: 100%;
+        min-height: 36px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 7px 9px;
+        background: var(--panel-2);
+        color: var(--text);
+      }
+
+      .time-set {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+      }
+
+      .switch {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .switch input {
+        width: 18px;
+        height: 18px;
+        accent-color: var(--control-accent);
+      }
+
+      @media (max-width: 820px) {
+        .stage {
+          min-height: 62vh;
+        }
+
+        .receiver,
+        .receiver.wide {
+          aspect-ratio: 4 / 3;
+        }
+
+        .controls {
+          grid-template-columns: 1fr;
+        }
+
+        label {
+          grid-template-columns: 1fr;
+        }
+
+        .switch {
+          display: grid;
+          grid-template-columns: 1fr auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <section class="stage" aria-label="EMF26 broadcast clock simulation">
+        <div id="receiver" class="receiver">
+          <svg id="clock-svg" viewBox="240 0 1440 1080" role="img" aria-labelledby="clock-title clock-desc">
+            <title id="clock-title">crt-bbc-clock</title>
+            <desc id="clock-desc">A white mechanical television clock on black with EMF26 below a horizontal line.</desc>
+            <rect id="screen" x="0" y="0" width="1920" height="1080" fill="var(--clock-black)"></rect>
+            <g id="dial-markers" class="clock-fill"></g>
+
+            <g id="hour-hand" class="clock-fill">
+              <path d="M950 177.127h20V383h-20z"></path>
+            </g>
+            <g id="minute-hand" class="clock-fill">
+              <path d="M952 103h16v280h-16z"></path>
+            </g>
+            <g id="second-hand" class="clock-fill">
+              <path d="M955 104.02h10v386h-10z"></path>
+            </g>
+
+            <circle class="clock-fill" cx="960" cy="383" r="53"></circle>
+            <circle cx="960" cy="383" r="41" fill="var(--clock-black)"></circle>
+
+            <rect class="clock-fill" x="0" y="713" width="1920" height="14"></rect>
+            <g id="station-mark" transform="translate(0 768)">
+              <g id="emf26-boxes"></g>
+              <g id="emf26-text"></g>
+            </g>
+          </svg>
+        </div>
+      </section>
+
+      <section class="controls" aria-label="Clock controls">
+        <section class="panel" aria-labelledby="status-title">
+          <div class="panel-head">
+            <div>
+              <h1 id="status-title">crt-bbc-clock</h1>
+              <p id="status">Live clock synced to local time</p>
+            </div>
+            <div id="readout" class="readout">--:--:--</div>
+          </div>
+          <label class="switch">
+            Live clock
+            <input id="live-clock" type="checkbox" checked>
+          </label>
+        </section>
+
+        <section class="panel" aria-labelledby="time-title">
+          <div class="panel-head">
+            <h2 id="time-title">Time</h2>
+            <button id="sync-now" type="button">Sync Now</button>
+          </div>
+          <div class="time-set">
+            <input id="manual-time" type="time" step="1" value="12:00:00" aria-label="Manual time">
+            <button id="set-time" type="button" class="secondary">Set</button>
+          </div>
+          <div class="button-row">
+            <button id="step-second" type="button">Step Second</button>
+            <button id="set-noon" type="button" class="secondary">Noon</button>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="motion-title">
+          <div class="panel-head">
+            <h2 id="motion-title">Motion</h2>
+            <select id="aspect" aria-label="Aspect ratio">
+              <option value="original">4:3</option>
+              <option value="wide">16:9</option>
+            </select>
+          </div>
+          <label>
+            Tick snap
+            <input id="snap-strength" type="range" min="0" max="120" step="5" value="100">
+            <output id="snap-label">100%</output>
+          </label>
+        </section>
+      </section>
+    </main>
+
+    <script>
+      const CENTER_X = 960;
+      const CENTER_Y = 383;
+      const CLOCK_INK = "#f4f7fb";
+      const LABEL_TILES = [
+        { char: "E", width: 76, gapAfter: 14 },
+        { char: "M", width: 88, gapAfter: 14, fontSize: 52 },
+        { char: "F", width: 76, gapAfter: 44 },
+        { char: "2", width: 76, gapAfter: 14 },
+        { char: "6", width: 76 }
+      ];
+      const LABEL_GAP = 14;
+      const LABEL_SLANT = 20;
+      const LABEL_HEIGHT = 79;
+      const LABEL_Y = 794;
+      const TICK_OFFSETS = [-5.915291132, -3.512368126, -1.292272628, 0.751891177, -0.493091273, 0.258782998, -0.247417696];
+
+      const elements = {
+        receiver: document.querySelector("#receiver"),
+        markers: document.querySelector("#dial-markers"),
+        hour: document.querySelector("#hour-hand"),
+        minute: document.querySelector("#minute-hand"),
+        second: document.querySelector("#second-hand"),
+        boxes: document.querySelector("#emf26-boxes"),
+        emfText: document.querySelector("#emf26-text"),
+        readout: document.querySelector("#readout"),
+        status: document.querySelector("#status"),
+        liveClock: document.querySelector("#live-clock"),
+        manualTime: document.querySelector("#manual-time"),
+        setTime: document.querySelector("#set-time"),
+        syncNow: document.querySelector("#sync-now"),
+        stepSecond: document.querySelector("#step-second"),
+        setNoon: document.querySelector("#set-noon"),
+        aspect: document.querySelector("#aspect"),
+        snapStrength: document.querySelector("#snap-strength"),
+        snapLabel: document.querySelector("#snap-label")
+      };
+
+      const state = {
+        manualDate: todayAt("12:00:00"),
+        manualTickStartedAt: 0,
+        readoutStamp: ""
+      };
+
+      buildMarkers();
+      buildStationMark();
+      wireControls();
+      requestAnimationFrame(render);
+
+      function buildMarkers() {
+        const fragment = document.createDocumentFragment();
+
+        for (let hour = 1; hour <= 12; hour += 1) {
+          const angle = hour * 30;
+          const thickness = 4 + hour * 1.65;
+          const gap = 7 + hour * 0.45;
+          const group = svgElement("g", {
+            transform: `rotate(${angle} ${CENTER_X} ${CENTER_Y})`
+          });
+
+          [-1, 1].forEach((side) => {
+            group.appendChild(svgElement("rect", {
+              x: CENTER_X + side * (gap + thickness) / 2 - thickness / 2,
+              y: 106,
+              width: thickness,
+              height: 73,
+              rx: 0
+            }));
+          });
+
+          fragment.appendChild(group);
+        }
+
+        elements.markers.appendChild(fragment);
+      }
+
+      function buildStationMark() {
+        const fragment = document.createDocumentFragment();
+        let cursor = 0;
+
+        for (const tile of LABEL_TILES) {
+          const box = svgElement("polygon", {
+            points: [
+              `${cursor + LABEL_SLANT},0`,
+              `${cursor + tile.width + LABEL_SLANT},0`,
+              `${cursor + tile.width},${LABEL_HEIGHT}`,
+              `${cursor},${LABEL_HEIGHT}`
+            ].join(" "),
+            fill: CLOCK_INK
+          });
+          fragment.appendChild(box);
+          cursor += tile.width + tileGapAfter(tile);
+        }
+
+        elements.boxes.appendChild(fragment);
+
+        const markWidth = cursor - tileGapAfter(LABEL_TILES[LABEL_TILES.length - 1]) + LABEL_SLANT;
+        const markX = CENTER_X - markWidth / 2;
+        document.querySelector("#station-mark").setAttribute("transform", `translate(${markX} ${LABEL_Y})`);
+
+        cursor = 0;
+        for (const tile of LABEL_TILES) {
+          const letter = svgElement("text", {
+            x: cursor + LABEL_SLANT / 2 + tile.width / 2,
+            y: 60,
+            "text-anchor": "middle",
+            "font-family": "Arial Black, Arial, Helvetica, sans-serif",
+            "font-size": tile.fontSize ?? 56,
+            "font-style": "italic",
+            "font-weight": "900",
+            "letter-spacing": "0",
+            fill: "#000"
+          });
+          letter.textContent = tile.char;
+          elements.emfText.appendChild(letter);
+          cursor += tile.width + tileGapAfter(tile);
+        }
+      }
+
+      function tileGapAfter(tile) {
+        return tile.gapAfter ?? LABEL_GAP;
+      }
+
+      function wireControls() {
+        elements.liveClock.addEventListener("change", () => {
+          if (elements.liveClock.checked) {
+            setStatus("Live clock synced to local time");
+          } else {
+            state.manualDate = currentDisplayDate();
+            elements.manualTime.value = formatTimeValue(state.manualDate);
+            setStatus("Manual time control enabled");
+          }
+        });
+
+        elements.setTime.addEventListener("click", () => {
+          setManualTime(elements.manualTime.value);
+        });
+
+        elements.syncNow.addEventListener("click", () => {
+          elements.liveClock.checked = true;
+          setStatus("Live clock synced to local time");
+        });
+
+        elements.stepSecond.addEventListener("click", () => {
+          elements.liveClock.checked = false;
+          state.manualDate = addSeconds(currentDisplayDate(), 1);
+          elements.manualTime.value = formatTimeValue(state.manualDate);
+          state.manualTickStartedAt = performance.now();
+          setStatus("Manual second advanced");
+        });
+
+        elements.setNoon.addEventListener("click", () => {
+          elements.liveClock.checked = false;
+          setManualTime("12:00:00");
+        });
+
+        elements.aspect.addEventListener("change", () => {
+          elements.receiver.classList.toggle("wide", elements.aspect.value === "wide");
+        });
+
+        elements.snapStrength.addEventListener("input", () => {
+          elements.snapLabel.textContent = `${elements.snapStrength.value}%`;
+        });
+      }
+
+      function render(now) {
+        const date = currentDisplayDate();
+        const elapsed = elements.liveClock.checked ? date.getMilliseconds() : now - state.manualTickStartedAt;
+        const snapScale = Number(elements.snapStrength.value) / 100;
+        const snapOffset = tickOffset(elapsed) * snapScale;
+        const seconds = date.getSeconds();
+        const minutes = date.getMinutes();
+        const hours = date.getHours() % 12;
+
+        const secondAngle = 6 * seconds + snapOffset;
+        const minuteAngle = 6 * minutes + 0.1 * seconds;
+        const hourAngle = 30 * hours + minutes / 2 + seconds / 120;
+
+        rotate(elements.hour, hourAngle);
+        rotate(elements.minute, minuteAngle);
+        rotate(elements.second, secondAngle);
+        updateReadout(date);
+
+        requestAnimationFrame(render);
+      }
+
+      function rotate(element, degrees) {
+        element.setAttribute("transform", `rotate(${degrees} ${CENTER_X} ${CENTER_Y})`);
+      }
+
+      function tickOffset(elapsedMs) {
+        if (elapsedMs < 0 || elapsedMs >= 280) {
+          return 0;
+        }
+
+        const index = Math.min(TICK_OFFSETS.length - 1, Math.floor(elapsedMs / 40));
+        return TICK_OFFSETS[index];
+      }
+
+      function currentDisplayDate() {
+        return elements.liveClock.checked ? new Date() : new Date(state.manualDate);
+      }
+
+      function setManualTime(value) {
+        state.manualDate = todayAt(value || "12:00:00");
+        elements.manualTime.value = formatTimeValue(state.manualDate);
+        state.manualTickStartedAt = 0;
+        setStatus("Manual time set");
+      }
+
+      function todayAt(value) {
+        const [hours = 0, minutes = 0, seconds = 0] = value.split(":").map(Number);
+        const date = new Date();
+        date.setHours(hours, minutes, seconds, 0);
+        return date;
+      }
+
+      function addSeconds(date, seconds) {
+        return new Date(date.getTime() + seconds * 1000);
+      }
+
+      function formatTimeValue(date) {
+        return [date.getHours(), date.getMinutes(), date.getSeconds()]
+          .map((part) => String(part).padStart(2, "0"))
+          .join(":");
+      }
+
+      function updateReadout(date) {
+        const stamp = formatTimeValue(date);
+        if (stamp !== state.readoutStamp) {
+          state.readoutStamp = stamp;
+          elements.readout.textContent = stamp;
+        }
+      }
+
+      function setStatus(message) {
+        elements.status.textContent = message;
+      }
+
+      function svgElement(name, attributes) {
+        const element = document.createElementNS("http://www.w3.org/2000/svg", name);
+        Object.entries(attributes).forEach(([key, value]) => {
+          element.setAttribute(key, String(value));
+        });
+        return element;
+      }
+    </script>
+  </body>
+</html>
