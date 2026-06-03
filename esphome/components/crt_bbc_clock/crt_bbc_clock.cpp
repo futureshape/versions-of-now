@@ -25,6 +25,9 @@ void CrtBbcClock::setup() {
 }
 
 void CrtBbcClock::loop() {
+  if (this->test_pattern_forced_)
+    return;
+
   if (!this->clock_started_) {
     if (this->time_ != nullptr && this->time_->now().is_valid())
       this->start_clock_output_();
@@ -48,6 +51,25 @@ void CrtBbcClock::dump_config() {
 }
 
 float CrtBbcClock::get_setup_priority() const { return setup_priority::HARDWARE; }
+
+void CrtBbcClock::set_test_pattern(bool enabled) {
+  this->test_pattern_forced_ = enabled;
+
+  if (enabled) {
+    ESP_LOGI(TAG, "Showing PAL 384x288 PM5544 test pattern for CRT calibration");
+    video_test_pal(VIDEO_TEST_PM5544);
+    this->frame_buffer_words_ = nullptr;
+    this->clock_started_ = false;
+    return;
+  }
+
+  ESP_LOGI(TAG, "Leaving CRT calibration test pattern");
+  if (this->time_ != nullptr && this->time_->now().is_valid()) {
+    this->start_clock_output_();
+  } else {
+    this->show_waiting_pattern_();
+  }
+}
 
 int16_t CrtBbcClock::sx(float source_x) const { return (int16_t) std::lround((source_x - SOURCE_VIEW_X) * SOURCE_SCALE_X); }
 

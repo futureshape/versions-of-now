@@ -15,6 +15,7 @@ namespace crt_bbc_clock {
 class CrtBbcClock : public Component {
  public:
   void set_time(time::RealTimeClock *time) { this->time_ = time; }
+  void set_test_pattern(bool enabled);
 
   void setup() override;
   void loop() override;
@@ -42,6 +43,7 @@ class CrtBbcClock : public Component {
   int last_second_{-1};
   bool logged_time_wait_{false};
   bool clock_started_{false};
+  bool test_pattern_forced_{false};
 
   int16_t sx(float source_x) const;
   int16_t sy(float source_y) const;

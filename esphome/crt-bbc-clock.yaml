@@ -41,6 +41,18 @@ status_led:
     inverted: false
     ignore_strapping_warning: true
 
+switch:
+  - platform: template
+    name: "CRT Test Pattern"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - lambda: |-
+          id(crt_clock).set_test_pattern(true);
+    turn_off_action:
+      - lambda: |-
+          id(crt_clock).set_test_pattern(false);
+
 crt_bbc_clock:
   id: crt_clock
   time_id: ntp_time

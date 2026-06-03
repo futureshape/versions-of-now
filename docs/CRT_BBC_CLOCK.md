@@ -29,6 +29,10 @@ Hardware assumptions:
 On boot, the device shows the library's PAL 384x288 Philips PM5544 test pattern
 until SNTP time is valid, then switches to the PAL 384x288 clock renderer.
 
+The ESPHome web server exposes a `CRT Test Pattern` switch. Turning it on forces
+the PM5544 pattern for CRT calibration; turning it off returns to the clock when
+time is valid.
+
 Clock frames are rendered after the composite library signals the end of the
 visible PAL frame, keeping framebuffer updates aligned with vertical blanking.
 
