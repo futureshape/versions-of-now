@@ -35,17 +35,17 @@ spi:
   mosi_pin: ${spi_mosi_pin}
 
 globals:
-  # Time is encoded as minutes since midnight, 0..1439. Each value renders to
-  # a full hh:mm framebuffer, so hour changes animate exactly like minute changes.
-  - id: displayed_time_minutes
+  # Time is encoded as seconds since midnight, 0..86399. Each value renders to
+  # a full HH:MMSS framebuffer, so second and minute changes can animate differently.
+  - id: displayed_time_seconds
     type: int
     restore_value: false
     initial_value: "-1"
-  - id: target_time_minutes
+  - id: target_time_seconds
     type: int
     restore_value: false
     initial_value: "-1"
-  - id: last_ntp_time_minutes
+  - id: last_ntp_time_seconds
     type: int
     restore_value: false
     initial_value: "-1"
@@ -66,13 +66,12 @@ globals:
 
 select:
   - platform: template
-    id: auto_animation
-    name: "Auto Animation"
+    id: auto_transitions
+    name: "Auto Transitions"
     optimistic: true
-    initial_option: "Falling pixels"
+    initial_option: "On"
     options:
-      - "Falling pixels"
-      - "One by one"
+      - "On"
       - "Off"
 
 number:
@@ -91,10 +90,10 @@ number:
     id: one_by_one_duration_ms
     name: "One By One Animation Duration"
     optimistic: true
-    min_value: 300
-    max_value: 2200
-    step: 100
-    initial_value: 1000
+    min_value: 120
+    max_value: 1200
+    step: 40
+    initial_value: 420
     unit_of_measurement: "ms"
     mode: slider
 
@@ -110,13 +109,13 @@ number:
 
 button:
   - platform: template
-    name: "Trigger Falling Pixels"
+    name: "Trigger Minute Fall"
     on_press:
       - lambda: |-
           id(requested_animation_mode) = 1;
 
   - platform: template
-    name: "Trigger One By One"
+    name: "Trigger Second Swap"
     on_press:
       - lambda: |-
           id(requested_animation_mode) = 2;
@@ -127,9 +126,9 @@ button:
       - lambda: |-
           auto now = id(ntp_time).now();
           if (now.is_valid()) {
-            id(displayed_time_minutes) = now.hour * 60 + now.minute;
-            id(target_time_minutes) = id(displayed_time_minutes);
-            id(last_ntp_time_minutes) = id(displayed_time_minutes);
+            id(displayed_time_seconds) = now.hour * 3600 + now.minute * 60 + now.second;
+            id(target_time_seconds) = id(displayed_time_seconds);
+            id(last_ntp_time_seconds) = id(displayed_time_seconds);
             id(active_animation_mode) = 0;
             id(requested_animation_mode) = 0;
           }
@@ -144,21 +143,22 @@ display:
     scroll_enable: false
     update_interval: 33ms
     lambda: |-
-      // Custom 5x8 digit-only font shared with the HTML simulator.
+      // Custom 4x8 digit font shared with the HTML simulator. Each row is drawn
+      // as bits, where 1 is a lit pixel and 0 is an unlit pixel.
       static const uint8_t GLYPHS[11][8] = {
-        {0b01110, 0b10001, 0b10011, 0b10101, 0b10101, 0b11001, 0b10001, 0b01110}, // 0
-        {0b00100, 0b01100, 0b00100, 0b00100, 0b00100, 0b00100, 0b00100, 0b01110}, // 1
-        {0b01110, 0b10001, 0b00001, 0b00010, 0b00100, 0b01000, 0b10000, 0b11111}, // 2
-        {0b11110, 0b00001, 0b00001, 0b01110, 0b00001, 0b00001, 0b10001, 0b01110}, // 3
-        {0b00010, 0b00110, 0b01010, 0b10010, 0b11111, 0b00010, 0b00010, 0b00010}, // 4
-        {0b11111, 0b10000, 0b10000, 0b11110, 0b00001, 0b00001, 0b10001, 0b01110}, // 5
-        {0b00110, 0b01000, 0b10000, 0b11110, 0b10001, 0b10001, 0b10001, 0b01110}, // 6
-        {0b11111, 0b00001, 0b00010, 0b00100, 0b00100, 0b01000, 0b01000, 0b01000}, // 7
-        {0b01110, 0b10001, 0b10001, 0b01110, 0b10001, 0b10001, 0b10001, 0b01110}, // 8
-        {0b01110, 0b10001, 0b10001, 0b10001, 0b01111, 0b00001, 0b00010, 0b11100}, // 9
-        {0b0,     0b1,     0b1,     0b0,     0b0,     0b1,     0b1,     0b0    }  // :
+        {0b0110, 0b1001, 0b1001, 0b1001, 0b1001, 0b1001, 0b1001, 0b0110}, // 0
+        {0b0010, 0b0110, 0b1010, 0b0010, 0b0010, 0b0010, 0b0010, 0b1111}, // 1
+        {0b0110, 0b1001, 0b0001, 0b0110, 0b1000, 0b1000, 0b1000, 0b1111}, // 2
+        {0b0110, 0b1001, 0b0001, 0b0110, 0b0001, 0b0001, 0b1001, 0b0110}, // 3
+        {0b0001, 0b0011, 0b0101, 0b1111, 0b0001, 0b0001, 0b0001, 0b0001}, // 4
+        {0b1111, 0b1000, 0b1000, 0b1110, 0b0001, 0b0001, 0b1001, 0b0110}, // 5
+        {0b0111, 0b1000, 0b1000, 0b1110, 0b1001, 0b1001, 0b1001, 0b0110}, // 6
+        {0b1111, 0b0001, 0b0001, 0b0010, 0b0010, 0b0100, 0b0100, 0b0100}, // 7
+        {0b0110, 0b1001, 0b1001, 0b0110, 0b1001, 0b1001, 0b1001, 0b0110}, // 8
+        {0b0110, 0b1001, 0b1001, 0b0111, 0b0001, 0b0001, 0b1001, 0b0110}, // 9
+        {0b0,    0b1,    0b1,    0b0,    0b0,    0b1,    0b1,    0b0   }  // :
       };
-      static const uint8_t WIDTHS[11] = {5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 1};
+      static const uint8_t WIDTHS[11] = {4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 1};
 
       // Each row is a 32-bit framebuffer. Bit N represents column N.
       auto clamp01 = [](float value) -> float {
@@ -200,27 +200,36 @@ display:
         for (int row = 0; row < 8; row++) rows[row] = 0;
       };
 
-      auto render_time = [&](int time_minutes, uint32_t rows[8]) {
+      auto gap_after = [](int index) -> int {
+        if (index >= 6) return 0;
+        if (index == 4) return 2;
+        return 1;
+      };
+
+      auto render_time = [&](int time_seconds, uint32_t rows[8]) {
         clear_grid(rows);
 
-        int hour = (time_minutes / 60) % 24;
-        int minute = time_minutes % 60;
-        int chars[5] = {
+        int hour = (time_seconds / 3600) % 24;
+        int minute = (time_seconds / 60) % 60;
+        int second = time_seconds % 60;
+        int chars[7] = {
           hour / 10,
           hour % 10,
           10,
           minute / 10,
-          minute % 10
+          minute % 10,
+          second / 10,
+          second % 10
         };
 
         int total_width = 0;
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 7; i++) {
           total_width += WIDTHS[chars[i]];
+          total_width += gap_after(i);
         }
-        total_width += 4;
 
         int cursor = (32 - total_width) / 2;
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 7; i++) {
           int glyph = chars[i];
           int width = WIDTHS[glyph];
 
@@ -233,7 +242,7 @@ display:
             }
           }
 
-          cursor += width + 1;
+          cursor += width + gap_after(i);
         }
       };
 
@@ -249,9 +258,13 @@ display:
         }
       };
 
-      auto start_animation = [&](int target_minutes, int mode) {
+      auto minute_changed = [](int previous_seconds, int next_seconds) -> bool {
+        return (previous_seconds / 60) != (next_seconds / 60);
+      };
+
+      auto start_animation = [&](int target_seconds, int mode) {
         if (id(active_animation_mode) != 0) return;
-        id(target_time_minutes) = target_minutes;
+        id(target_time_seconds) = target_seconds;
         id(active_animation_mode) = mode;
         id(animation_started_at) = millis();
       };
@@ -266,44 +279,46 @@ display:
         return;
       }
 
-      int ntp_time_minutes = now.hour * 60 + now.minute;
-      if (id(displayed_time_minutes) < 0) {
-        id(displayed_time_minutes) = ntp_time_minutes;
-        id(target_time_minutes) = ntp_time_minutes;
-        id(last_ntp_time_minutes) = ntp_time_minutes;
+      int ntp_time_seconds = now.hour * 3600 + now.minute * 60 + now.second;
+      if (id(displayed_time_seconds) < 0) {
+        id(displayed_time_seconds) = ntp_time_seconds;
+        id(target_time_seconds) = ntp_time_seconds;
+        id(last_ntp_time_seconds) = ntp_time_seconds;
       }
 
       if (id(requested_animation_mode) != 0 && id(active_animation_mode) == 0) {
-        int target = (id(displayed_time_minutes) + 1) % 1440;
+        int target = id(requested_animation_mode) == 1
+          ? (id(displayed_time_seconds) + 60) % 86400
+          : (id(displayed_time_seconds) + 1) % 86400;
         start_animation(target, id(requested_animation_mode));
         id(requested_animation_mode) = 0;
       }
 
-      if (ntp_time_minutes != id(last_ntp_time_minutes)) {
-        id(last_ntp_time_minutes) = ntp_time_minutes;
-        if (id(active_animation_mode) == 0 && ntp_time_minutes != id(displayed_time_minutes)) {
-          std::string mode = id(auto_animation).current_option();
-          if (mode == "Falling pixels") {
-            start_animation(ntp_time_minutes, 1);
-          } else if (mode == "One by one") {
-            start_animation(ntp_time_minutes, 2);
-          } else {
-            id(displayed_time_minutes) = ntp_time_minutes;
-            id(target_time_minutes) = ntp_time_minutes;
-          }
+      if (
+        ntp_time_seconds != id(last_ntp_time_seconds)
+        && id(active_animation_mode) == 0
+        && ntp_time_seconds != id(displayed_time_seconds)
+      ) {
+        id(last_ntp_time_seconds) = ntp_time_seconds;
+        if (id(auto_transitions).current_option() == "Off") {
+          id(displayed_time_seconds) = ntp_time_seconds;
+          id(target_time_seconds) = ntp_time_seconds;
+        } else {
+          int mode = minute_changed(id(displayed_time_seconds), ntp_time_seconds) ? 1 : 2;
+          start_animation(ntp_time_seconds, mode);
         }
       }
 
       if (id(active_animation_mode) == 0) {
-        render_time(id(displayed_time_minutes), output);
+        render_time(id(displayed_time_seconds), output);
         draw_grid(output);
         return;
       }
 
       uint32_t previous[8];
       uint32_t next[8];
-      render_time(id(displayed_time_minutes), previous);
-      render_time(id(target_time_minutes), next);
+      render_time(id(displayed_time_seconds), previous);
+      render_time(id(target_time_seconds), next);
 
       uint32_t duration = id(active_animation_mode) == 1
         ? (uint32_t) id(falling_duration_ms).state
@@ -311,9 +326,9 @@ display:
       uint32_t elapsed = now_ms - id(animation_started_at);
 
       if (elapsed >= duration) {
-        id(displayed_time_minutes) = id(target_time_minutes);
+        id(displayed_time_seconds) = id(target_time_seconds);
         id(active_animation_mode) = 0;
-        render_time(id(displayed_time_minutes), output);
+        render_time(id(displayed_time_seconds), output);
         draw_grid(output);
         return;
       }
