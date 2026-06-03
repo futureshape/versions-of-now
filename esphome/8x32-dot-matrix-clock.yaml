@@ -1,0 +1,372 @@
+substitutions:
+  name: dot-matrix-clock
+  friendly_name: "Dot Matrix Clock"
+  # ESP32-DevKitC V4 / classic ESP32 VSPI pins.
+  spi_clk_pin: GPIO18
+  spi_mosi_pin: GPIO23
+  matrix_cs_pin: GPIO5
+  # Many ESP32 DevKitC-style boards/clones use GPIO2 for a controllable blue LED.
+  # Official Espressif DevKitC V4 boards may only have a power LED; in that case
+  # move this to an external LED pin or remove the status_led block.
+  status_led_pin: GPIO2
+
+packages:
+  network: !include shared/network.yaml
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+logger:
+
+status_led:
+  pin:
+    number: ${status_led_pin}
+    inverted: false
+    ignore_strapping_warning: true
+
+spi:
+  clk_pin: ${spi_clk_pin}
+  mosi_pin: ${spi_mosi_pin}
+
+globals:
+  # Time is encoded as minutes since midnight, 0..1439. Each value renders to
+  # a full hh:mm framebuffer, so hour changes animate exactly like minute changes.
+  - id: displayed_time_minutes
+    type: int
+    restore_value: false
+    initial_value: "-1"
+  - id: target_time_minutes
+    type: int
+    restore_value: false
+    initial_value: "-1"
+  - id: last_ntp_time_minutes
+    type: int
+    restore_value: false
+    initial_value: "-1"
+  # Animation mode values: 0 idle, 1 falling pixels, 2 one-by-one swap.
+  - id: active_animation_mode
+    type: int
+    restore_value: false
+    initial_value: "0"
+  - id: animation_started_at
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+  # Buttons write this value; the display lambda consumes it on the next frame.
+  - id: requested_animation_mode
+    type: int
+    restore_value: false
+    initial_value: "0"
+
+select:
+  - platform: template
+    id: auto_animation
+    name: "Auto Animation"
+    optimistic: true
+    initial_option: "Falling pixels"
+    options:
+      - "Falling pixels"
+      - "One by one"
+      - "Off"
+
+number:
+  - platform: template
+    id: falling_duration_ms
+    name: "Falling Animation Duration"
+    optimistic: true
+    min_value: 400
+    max_value: 2600
+    step: 100
+    initial_value: 1300
+    unit_of_measurement: "ms"
+    mode: slider
+
+  - platform: template
+    id: one_by_one_duration_ms
+    name: "One By One Animation Duration"
+    optimistic: true
+    min_value: 300
+    max_value: 2200
+    step: 100
+    initial_value: 1000
+    unit_of_measurement: "ms"
+    mode: slider
+
+  - platform: template
+    id: display_intensity
+    name: "Display Intensity"
+    optimistic: true
+    min_value: 0
+    max_value: 15
+    step: 1
+    initial_value: 8
+    mode: slider
+
+button:
+  - platform: template
+    name: "Trigger Falling Pixels"
+    on_press:
+      - lambda: |-
+          id(requested_animation_mode) = 1;
+
+  - platform: template
+    name: "Trigger One By One"
+    on_press:
+      - lambda: |-
+          id(requested_animation_mode) = 2;
+
+  - platform: template
+    name: "Sync To NTP Time"
+    on_press:
+      - lambda: |-
+          auto now = id(ntp_time).now();
+          if (now.is_valid()) {
+            id(displayed_time_minutes) = now.hour * 60 + now.minute;
+            id(target_time_minutes) = id(displayed_time_minutes);
+            id(last_ntp_time_minutes) = id(displayed_time_minutes);
+            id(active_animation_mode) = 0;
+            id(requested_animation_mode) = 0;
+          }
+
+display:
+  - platform: max7219digit
+    id: matrix_display
+    cs_pin:
+      number: ${matrix_cs_pin}
+      ignore_strapping_warning: true
+    num_chips: 4
+    scroll_enable: false
+    update_interval: 33ms
+    lambda: |-
+      // Custom 5x8 digit-only font shared with the HTML simulator.
+      static const uint8_t GLYPHS[11][8] = {
+        {0b01110, 0b10001, 0b10011, 0b10101, 0b10101, 0b11001, 0b10001, 0b01110}, // 0
+        {0b00100, 0b01100, 0b00100, 0b00100, 0b00100, 0b00100, 0b00100, 0b01110}, // 1
+        {0b01110, 0b10001, 0b00001, 0b00010, 0b00100, 0b01000, 0b10000, 0b11111}, // 2
+        {0b11110, 0b00001, 0b00001, 0b01110, 0b00001, 0b00001, 0b10001, 0b01110}, // 3
+        {0b00010, 0b00110, 0b01010, 0b10010, 0b11111, 0b00010, 0b00010, 0b00010}, // 4
+        {0b11111, 0b10000, 0b10000, 0b11110, 0b00001, 0b00001, 0b10001, 0b01110}, // 5
+        {0b00110, 0b01000, 0b10000, 0b11110, 0b10001, 0b10001, 0b10001, 0b01110}, // 6
+        {0b11111, 0b00001, 0b00010, 0b00100, 0b00100, 0b01000, 0b01000, 0b01000}, // 7
+        {0b01110, 0b10001, 0b10001, 0b01110, 0b10001, 0b10001, 0b10001, 0b01110}, // 8
+        {0b01110, 0b10001, 0b10001, 0b10001, 0b01111, 0b00001, 0b00010, 0b11100}, // 9
+        {0b0,     0b1,     0b1,     0b0,     0b0,     0b1,     0b1,     0b0    }  // :
+      };
+      static const uint8_t WIDTHS[11] = {5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 1};
+
+      // Each row is a 32-bit framebuffer. Bit N represents column N.
+      auto clamp01 = [](float value) -> float {
+        if (value < 0.0f) return 0.0f;
+        if (value > 1.0f) return 1.0f;
+        return value;
+      };
+
+      auto ease_in_quad = [](float value) -> float {
+        return value * value;
+      };
+
+      auto ease_out_cubic = [](float value) -> float {
+        float inverse = 1.0f - value;
+        return 1.0f - inverse * inverse * inverse;
+      };
+
+      auto hash_pixel = [](int row, int col) -> uint16_t {
+        // Deterministic pseudo-randomness: gives each pixel a stable order/delay
+        // without storing a separate shuffle table in RAM.
+        uint32_t value = (uint32_t) (row * 37 + col * 149 + 17);
+        value ^= value << 13;
+        value ^= value >> 17;
+        value ^= value << 5;
+        return (uint16_t) (value & 0xFFFF);
+      };
+
+      auto set_pixel = [](uint32_t rows[8], int row, int col) {
+        if (row < 0 || row >= 8 || col < 0 || col >= 32) return;
+        rows[row] |= 1UL << col;
+      };
+
+      auto pixel_is_on = [](const uint32_t rows[8], int row, int col) -> bool {
+        if (row < 0 || row >= 8 || col < 0 || col >= 32) return false;
+        return rows[row] & (1UL << col);
+      };
+
+      auto clear_grid = [](uint32_t rows[8]) {
+        for (int row = 0; row < 8; row++) rows[row] = 0;
+      };
+
+      auto render_time = [&](int time_minutes, uint32_t rows[8]) {
+        clear_grid(rows);
+
+        int hour = (time_minutes / 60) % 24;
+        int minute = time_minutes % 60;
+        int chars[5] = {
+          hour / 10,
+          hour % 10,
+          10,
+          minute / 10,
+          minute % 10
+        };
+
+        int total_width = 0;
+        for (int i = 0; i < 5; i++) {
+          total_width += WIDTHS[chars[i]];
+        }
+        total_width += 4;
+
+        int cursor = (32 - total_width) / 2;
+        for (int i = 0; i < 5; i++) {
+          int glyph = chars[i];
+          int width = WIDTHS[glyph];
+
+          for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < width; col++) {
+              uint8_t mask = 1 << (width - 1 - col);
+              if (GLYPHS[glyph][row] & mask) {
+                set_pixel(rows, row, cursor + col);
+              }
+            }
+          }
+
+          cursor += width + 1;
+        }
+      };
+
+      auto draw_grid = [&](const uint32_t rows[8]) {
+        it.fill(COLOR_OFF);
+        it.intensity((uint8_t) id(display_intensity).state);
+        for (int row = 0; row < 8; row++) {
+          for (int col = 0; col < 32; col++) {
+            if (pixel_is_on(rows, row, col)) {
+              it.draw_pixel_at(col, row, COLOR_ON);
+            }
+          }
+        }
+      };
+
+      auto start_animation = [&](int target_minutes, int mode) {
+        if (id(active_animation_mode) != 0) return;
+        id(target_time_minutes) = target_minutes;
+        id(active_animation_mode) = mode;
+        id(animation_started_at) = millis();
+      };
+
+      uint32_t now_ms = millis();
+      auto now = id(ntp_time).now();
+      uint32_t output[8];
+      clear_grid(output);
+
+      if (!now.is_valid()) {
+        draw_grid(output);
+        return;
+      }
+
+      int ntp_time_minutes = now.hour * 60 + now.minute;
+      if (id(displayed_time_minutes) < 0) {
+        id(displayed_time_minutes) = ntp_time_minutes;
+        id(target_time_minutes) = ntp_time_minutes;
+        id(last_ntp_time_minutes) = ntp_time_minutes;
+      }
+
+      if (id(requested_animation_mode) != 0 && id(active_animation_mode) == 0) {
+        int target = (id(displayed_time_minutes) + 1) % 1440;
+        start_animation(target, id(requested_animation_mode));
+        id(requested_animation_mode) = 0;
+      }
+
+      if (ntp_time_minutes != id(last_ntp_time_minutes)) {
+        id(last_ntp_time_minutes) = ntp_time_minutes;
+        if (id(active_animation_mode) == 0 && ntp_time_minutes != id(displayed_time_minutes)) {
+          std::string mode = id(auto_animation).current_option();
+          if (mode == "Falling pixels") {
+            start_animation(ntp_time_minutes, 1);
+          } else if (mode == "One by one") {
+            start_animation(ntp_time_minutes, 2);
+          } else {
+            id(displayed_time_minutes) = ntp_time_minutes;
+            id(target_time_minutes) = ntp_time_minutes;
+          }
+        }
+      }
+
+      if (id(active_animation_mode) == 0) {
+        render_time(id(displayed_time_minutes), output);
+        draw_grid(output);
+        return;
+      }
+
+      uint32_t previous[8];
+      uint32_t next[8];
+      render_time(id(displayed_time_minutes), previous);
+      render_time(id(target_time_minutes), next);
+
+      uint32_t duration = id(active_animation_mode) == 1
+        ? (uint32_t) id(falling_duration_ms).state
+        : (uint32_t) id(one_by_one_duration_ms).state;
+      uint32_t elapsed = now_ms - id(animation_started_at);
+
+      if (elapsed >= duration) {
+        id(displayed_time_minutes) = id(target_time_minutes);
+        id(active_animation_mode) = 0;
+        render_time(id(displayed_time_minutes), output);
+        draw_grid(output);
+        return;
+      }
+
+      if (id(active_animation_mode) == 1) {
+        uint32_t old_phase = (uint32_t) (duration * 0.52f);
+        uint32_t new_phase = duration - old_phase;
+
+        if (elapsed < old_phase) {
+          for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 32; col++) {
+              if (!pixel_is_on(previous, row, col)) continue;
+
+              float delay = (hash_pixel(row, col) / 65535.0f) * 0.62f;
+              float progress = clamp01(((float) elapsed / old_phase - delay) / (1.0f - delay));
+              float y = row + (9.0f - row) * ease_in_quad(progress);
+              set_pixel(output, (int) (y + 0.5f), col);
+            }
+          }
+        } else {
+          uint32_t phase_elapsed = elapsed - old_phase;
+
+          for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 32; col++) {
+              if (!pixel_is_on(next, row, col)) continue;
+
+              float delay = (hash_pixel(row, col) / 65535.0f) * 0.58f;
+              float progress = clamp01(((float) phase_elapsed / new_phase - delay) / (1.0f - delay));
+              float y = (row - 8.0f) + 8.0f * ease_out_cubic(progress);
+              set_pixel(output, (int) (y + 0.5f), col);
+            }
+          }
+        }
+      } else {
+        float progress = (float) elapsed / duration;
+        float old_progress = clamp01(progress / 0.48f);
+        float new_progress = clamp01((progress - 0.25f) / 0.75f);
+
+        for (int row = 0; row < 8; row++) {
+          for (int col = 0; col < 32; col++) {
+            bool old_on = pixel_is_on(previous, row, col);
+            bool new_on = pixel_is_on(next, row, col);
+            float order = hash_pixel(row, col) / 65535.0f;
+
+            if (old_on && !new_on) {
+              if (order >= old_progress) set_pixel(output, row, col);
+            } else if (!old_on && new_on) {
+              if (order < new_progress) set_pixel(output, row, col);
+            } else if (old_on && new_on) {
+              set_pixel(output, row, col);
+            }
+          }
+        }
+      }
+
+      draw_grid(output);

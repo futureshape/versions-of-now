@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>8x32 Dot Matrix Clock Simulator</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #101113;
+        --panel: #191b1f;
+        --panel-2: #22252a;
+        --text: #f2f5f7;
+        --muted: #98a0aa;
+        --line: #343941;
+        --off: #24272d;
+        --on: #ff3f1f;
+        --on-hot: #ffb08e;
+        --shadow: rgba(255, 63, 31, 0.42);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--bg);
+        color: var(--text);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+
+      .app {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 28px;
+      }
+
+      .simulator {
+        width: min(1120px, 100%);
+      }
+
+      .topbar {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 18px;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: clamp(1.5rem, 3vw, 2.35rem);
+        line-height: 1.05;
+      }
+
+      p {
+        margin-top: 8px;
+        color: var(--muted);
+      }
+
+      .readout {
+        display: grid;
+        justify-items: end;
+        gap: 4px;
+        color: var(--muted);
+      }
+
+      #current-time {
+        color: var(--text);
+        font-size: 1.35rem;
+        font-variant-numeric: tabular-nums;
+      }
+
+      #next-time {
+        font-size: 0.9rem;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .matrix {
+        --gap: clamp(3px, 0.65vw, 7px);
+        position: relative;
+        display: grid;
+        grid-template-columns: repeat(32, minmax(0, 1fr));
+        grid-template-rows: repeat(8, minmax(0, 1fr));
+        gap: var(--gap);
+        width: 100%;
+        aspect-ratio: 4 / 1;
+        padding: clamp(10px, 1.6vw, 20px);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 38%),
+          #090a0c;
+        box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.65);
+        overflow: hidden;
+      }
+
+      .pixel {
+        position: relative;
+        min-width: 0;
+        min-height: 0;
+        border-radius: 999px;
+        background: var(--off);
+        transition: background-color 90ms linear, box-shadow 90ms linear, transform 90ms linear;
+      }
+
+      .pixel::after {
+        content: "";
+        position: absolute;
+        inset: 18%;
+        border-radius: inherit;
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .pixel.on {
+        background: radial-gradient(circle at 35% 30%, var(--on-hot), var(--on) 44%, #b8200d 78%);
+        box-shadow: 0 0 14px var(--shadow);
+      }
+
+      .pixel.ghost {
+        background: rgba(255, 63, 31, 0.32);
+        box-shadow: 0 0 8px rgba(255, 63, 31, 0.18);
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 18px;
+      }
+
+      .panel {
+        display: grid;
+        gap: 16px;
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+      }
+
+      .panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      h2 {
+        font-size: 1rem;
+      }
+
+      button {
+        border: 0;
+        border-radius: 6px;
+        padding: 8px 12px;
+        background: var(--on);
+        color: white;
+        cursor: pointer;
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+      }
+
+      label {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: 12px;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      input[type="range"] {
+        width: 100%;
+        accent-color: var(--on);
+      }
+
+      select {
+        grid-column: span 2;
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 8px 10px;
+        background: var(--panel-2);
+        color: var(--text);
+      }
+
+      @media (max-width: 760px) {
+        .app {
+          padding: 18px;
+        }
+
+        .topbar {
+          align-items: start;
+          flex-direction: column;
+        }
+
+        .readout {
+          justify-items: start;
+        }
+
+        .controls {
+          grid-template-columns: 1fr;
+        }
+
+        label {
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+
+        select {
+          grid-column: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <section class="simulator" aria-label="8 by 32 dot matrix clock simulator">
+        <div class="topbar">
+          <div>
+            <h1>8x32 Dot Matrix</h1>
+            <p id="status">Live clock: synced to local time</p>
+          </div>
+          <div class="readout" aria-live="polite">
+            <span id="current-time">--:----</span>
+            <span id="next-time">next --:----</span>
+          </div>
+        </div>
+
+        <div id="matrix" class="matrix" role="img" aria-label="Dot matrix display showing time"></div>
+
+        <div class="controls">
+          <section class="panel" aria-labelledby="fall-title">
+            <div class="panel-head">
+              <h2 id="fall-title">Minute Fall</h2>
+              <button id="trigger-fall" type="button">Next Minute</button>
+            </div>
+            <label>
+              Speed
+              <input id="fall-speed" type="range" min="400" max="2600" step="100" value="1300">
+              <span id="fall-speed-label">1.3s</span>
+            </label>
+          </section>
+
+          <section class="panel" aria-labelledby="swap-title">
+            <div class="panel-head">
+              <h2 id="swap-title">Second Swap</h2>
+              <button id="trigger-swap" type="button">Next Second</button>
+            </div>
+            <label>
+              Speed
+              <input id="swap-speed" type="range" min="120" max="1200" step="40" value="420">
+              <span id="swap-speed-label">0.4s</span>
+            </label>
+          </section>
+
+          <section class="panel" aria-labelledby="time-title">
+            <div class="panel-head">
+              <h2 id="time-title">Time</h2>
+              <button id="sync-now" type="button">Sync Now</button>
+            </div>
+            <label>
+              Auto transitions
+              <select id="auto-animation">
+                <option value="on">On</option>
+                <option value="none">Off</option>
+              </select>
+            </label>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const ROWS = 8;
+      const COLS = 32;
+
+      // Edit the font here. Use # for a lit pixel and . for an unlit pixel.
+      // Digits are 4x8; the colon is 1x8 so HH:MMSS fits in 32 columns.
+      const GLYPHS = createFont({
+        "0": `
+          .##.
+          #..#
+          #..#
+          #..#
+          #..#
+          #..#
+          #..#
+          .##.
+        `,
+        "1": `
+          ..#.
+          .##.
+          #.#.
+          ..#.
+          ..#.
+          ..#.
+          ..#.
+          ####
+        `,
+        "2": `
+          .##.
+          #..#
+          ...#
+          .##.
+          #...
+          #...
+          #...
+          ####
+        `,
+        "3": `
+          .##.
+          #..#
+          ...#
+          .##.
+          ...#
+          ...#
+          #..#
+          .##.
+        `,
+        "4": `
+          ...#
+          ..##
+          .#.#
+          ####
+          ...#
+          ...#
+          ...#
+          ...#
+        `,
+        "5": `
+          ####
+          #...
+          #...
+          ###.
+          ...#
+          ...#
+          #..#
+          .##.
+        `,
+        "6": `
+          .###
+          #...
+          #...
+          ###.
+          #..#
+          #..#
+          #..#
+          .##.
+        `,
+        "7": `
+          ####
+          ...#
+          ...#
+          ..#.
+          ..#.
+          .#..
+          .#..
+          .#..
+        `,
+        "8": `
+          .##.
+          #..#
+          #..#
+          .##.
+          #..#
+          #..#
+          #..#
+          .##.
+        `,
+        "9": `
+          .##.
+          #..#
+          #..#
+          .###
+          ...#
+          ...#
+          #..#
+          .##.
+        `,
+        ":": `
+          .
+          #
+          #
+          .
+          .
+          #
+          #
+          .
+        `
+      });
+
+      const elements = {
+        matrix: document.querySelector("#matrix"),
+        currentTime: document.querySelector("#current-time"),
+        nextTime: document.querySelector("#next-time"),
+        status: document.querySelector("#status"),
+        triggerFall: document.querySelector("#trigger-fall"),
+        triggerSwap: document.querySelector("#trigger-swap"),
+        fallSpeed: document.querySelector("#fall-speed"),
+        fallSpeedLabel: document.querySelector("#fall-speed-label"),
+        swapSpeed: document.querySelector("#swap-speed"),
+        swapSpeedLabel: document.querySelector("#swap-speed-label"),
+        autoAnimation: document.querySelector("#auto-animation"),
+        syncNow: document.querySelector("#sync-now")
+      };
+
+      const state = {
+        cells: [],
+        shownDate: new Date(),
+        shownGrid: emptyGrid(),
+        animating: false,
+        lastRealSecond: ""
+      };
+
+      setupMatrix();
+      syncToNow(false);
+      updateSpeedLabels();
+      wireControls();
+      setInterval(checkRealSecond, 250);
+
+      function setupMatrix() {
+        const fragment = document.createDocumentFragment();
+
+        for (let row = 0; row < ROWS; row += 1) {
+          for (let col = 0; col < COLS; col += 1) {
+            const pixel = document.createElement("div");
+            pixel.className = "pixel";
+            pixel.dataset.row = String(row);
+            pixel.dataset.col = String(col);
+            fragment.appendChild(pixel);
+            state.cells.push(pixel);
+          }
+        }
+
+        elements.matrix.appendChild(fragment);
+      }
+
+      function wireControls() {
+        elements.triggerFall.addEventListener("click", () => {
+          animateTo(addMinutes(state.shownDate, 1), "fall");
+        });
+
+        elements.triggerSwap.addEventListener("click", () => {
+          animateTo(addSeconds(state.shownDate, 1), "swap");
+        });
+
+        elements.syncNow.addEventListener("click", () => {
+          syncToNow(true);
+        });
+
+        elements.fallSpeed.addEventListener("input", updateSpeedLabels);
+        elements.swapSpeed.addEventListener("input", updateSpeedLabels);
+      }
+
+      function updateSpeedLabels() {
+        elements.fallSpeedLabel.textContent = `${(Number(elements.fallSpeed.value) / 1000).toFixed(1)}s`;
+        elements.swapSpeedLabel.textContent = `${(Number(elements.swapSpeed.value) / 1000).toFixed(1)}s`;
+      }
+
+      function checkRealSecond() {
+        const now = new Date();
+        const secondKey = secondStamp(now);
+
+        if (secondKey === state.lastRealSecond) {
+          return;
+        }
+
+        state.lastRealSecond = secondKey;
+
+        if (formatTime(now) === formatTime(state.shownDate) || state.animating) {
+          return;
+        }
+
+        if (elements.autoAnimation.value === "none") {
+          state.shownDate = now;
+          state.shownGrid = timeToGrid(formatTime(now));
+          renderGrid(state.shownGrid);
+          updateReadout();
+          setStatus("Live clock: synced without animation");
+          return;
+        }
+
+        const mode = minuteChanged(state.shownDate, now) ? "fall" : "swap";
+        animateTo(now, mode);
+      }
+
+      function syncToNow(announce) {
+        const now = new Date();
+        state.shownDate = now;
+        state.shownGrid = timeToGrid(formatTime(now));
+        state.lastRealSecond = secondStamp(now);
+        renderGrid(state.shownGrid);
+        updateReadout();
+
+        if (announce) {
+          setStatus("Live clock: synced to local time");
+        }
+      }
+
+      function animateTo(nextDate, mode) {
+        if (state.animating) {
+          return;
+        }
+
+        const previousGrid = cloneGrid(state.shownGrid);
+        const nextGrid = timeToGrid(formatTime(nextDate));
+
+        state.animating = true;
+        setButtonsDisabled(true);
+        updateReadout(nextDate);
+
+        if (mode === "fall") {
+          setStatus("Animating: current pixels falling out, next pixels dropping in");
+          animateFall(previousGrid, nextGrid, Number(elements.fallSpeed.value), () => finishAnimation(nextDate, nextGrid));
+          return;
+        }
+
+        setStatus("Animating: pixels changing one by one");
+        animateOneByOne(previousGrid, nextGrid, Number(elements.swapSpeed.value), () => finishAnimation(nextDate, nextGrid));
+      }
+
+      function finishAnimation(nextDate, nextGrid) {
+        state.shownDate = nextDate;
+        state.shownGrid = cloneGrid(nextGrid);
+        state.animating = false;
+        setButtonsDisabled(false);
+        renderGrid(state.shownGrid);
+        updateReadout();
+        setStatus("Live clock: seconds swap one by one; minutes fall");
+      }
+
+      function setButtonsDisabled(disabled) {
+        elements.triggerFall.disabled = disabled;
+        elements.triggerSwap.disabled = disabled;
+        elements.syncNow.disabled = disabled;
+      }
+
+      function setStatus(message) {
+        elements.status.textContent = message;
+      }
+
+      function updateReadout(nextDate = addSeconds(state.shownDate, 1)) {
+        elements.currentTime.textContent = formatTime(state.shownDate);
+        elements.nextTime.textContent = `next ${formatTime(nextDate)}`;
+        elements.matrix.setAttribute("aria-label", `Dot matrix display showing ${formatTime(state.shownDate)}`);
+      }
+
+      function animateFall(previousGrid, nextGrid, duration, onDone) {
+        const oldPhase = duration * 0.52;
+        const newPhase = duration - oldPhase;
+        const oldPixels = gridPoints(previousGrid).map((pixel) => ({
+          ...pixel,
+          delay: Math.random() * oldPhase * 0.62
+        }));
+        const newPixels = gridPoints(nextGrid).map((pixel) => ({
+          ...pixel,
+          delay: Math.random() * newPhase * 0.58
+        }));
+        const started = performance.now();
+
+        function frame(now) {
+          const elapsed = now - started;
+          const grid = emptyGrid();
+
+          if (elapsed < oldPhase) {
+            oldPixels.forEach((pixel) => {
+              const progress = clamp01((elapsed - pixel.delay) / (oldPhase - pixel.delay));
+              const row = Math.round(lerp(pixel.row, ROWS + 1, easeInQuad(progress)));
+              setGridPixel(grid, row, pixel.col);
+            });
+          } else {
+            newPixels.forEach((pixel) => {
+              const progress = clamp01((elapsed - oldPhase - pixel.delay) / (newPhase - pixel.delay));
+              const row = Math.round(lerp(pixel.row - ROWS, pixel.row, easeOutCubic(progress)));
+              setGridPixel(grid, row, pixel.col);
+            });
+          }
+
+          renderGrid(grid);
+
+          if (elapsed < duration) {
+            requestAnimationFrame(frame);
+            return;
+          }
+
+          onDone();
+        }
+
+        requestAnimationFrame(frame);
+      }
+
+      function animateOneByOne(previousGrid, nextGrid, duration, onDone) {
+        const oldOnly = [];
+        const newOnly = [];
+
+        for (let row = 0; row < ROWS; row += 1) {
+          for (let col = 0; col < COLS; col += 1) {
+            if (previousGrid[row][col] && !nextGrid[row][col]) {
+              oldOnly.push({ row, col });
+            }
+
+            if (!previousGrid[row][col] && nextGrid[row][col]) {
+              newOnly.push({ row, col });
+            }
+          }
+        }
+
+        const oldOrder = shuffle(oldOnly);
+        const newOrder = shuffle(newOnly);
+        const started = performance.now();
+        const handoff = duration * 0.48;
+
+        function frame(now) {
+          const elapsed = now - started;
+          const grid = cloneGrid(previousGrid);
+          const oldCount = Math.floor(clamp01(elapsed / handoff) * oldOrder.length);
+          const newCount = Math.floor(clamp01((elapsed - duration * 0.25) / (duration * 0.75)) * newOrder.length);
+
+          for (let index = 0; index < oldCount; index += 1) {
+            grid[oldOrder[index].row][oldOrder[index].col] = false;
+          }
+
+          for (let index = 0; index < newCount; index += 1) {
+            grid[newOrder[index].row][newOrder[index].col] = true;
+          }
+
+          renderGrid(grid);
+
+          if (elapsed < duration) {
+            requestAnimationFrame(frame);
+            return;
+          }
+
+          onDone();
+        }
+
+        requestAnimationFrame(frame);
+      }
+
+      function timeToGrid(time) {
+        const grid = emptyGrid();
+        const chars = time.split("");
+        const glyphs = chars.map((char) => GLYPHS[char]);
+        const widths = glyphs.map((glyph) => glyph[0].length);
+        const height = Math.max(...glyphs.map((glyph) => glyph.length));
+        const totalWidth = widths.reduce((sum, width) => sum + width, 0) + totalGapWidth(chars);
+        let cursor = Math.floor((COLS - totalWidth) / 2);
+        const top = Math.floor((ROWS - height) / 2);
+
+        glyphs.forEach((glyph, glyphIndex) => {
+          glyph.forEach((line, rowIndex) => {
+            line.split("").forEach((value, colIndex) => {
+              if (value === "1") {
+                grid[top + rowIndex][cursor + colIndex] = true;
+              }
+            });
+          });
+
+          cursor += glyph[0].length + gapAfter(chars, glyphIndex);
+        });
+
+        return grid;
+      }
+
+      function totalGapWidth(chars) {
+        return chars.reduce((sum, _char, index) => sum + gapAfter(chars, index), 0);
+      }
+
+      function gapAfter(chars, index) {
+        if (index >= chars.length - 1) {
+          return 0;
+        }
+
+        if (index === 4) {
+          return 2;
+        }
+
+        return 1;
+      }
+
+      function createFont(patterns) {
+        return Object.fromEntries(
+          Object.entries(patterns).map(([char, pattern]) => [char, parseGlyph(pattern)])
+        );
+      }
+
+      function parseGlyph(pattern) {
+        return pattern
+          .trim()
+          .split("\n")
+          .map((line) => line.trim().replaceAll("#", "1").replaceAll(".", "0"));
+      }
+
+      function renderGrid(grid) {
+        for (let row = 0; row < ROWS; row += 1) {
+          for (let col = 0; col < COLS; col += 1) {
+            const cell = state.cells[row * COLS + col];
+            cell.classList.toggle("on", grid[row][col]);
+            cell.classList.remove("ghost");
+          }
+        }
+      }
+
+      function emptyGrid() {
+        return Array.from({ length: ROWS }, () => Array.from({ length: COLS }, () => false));
+      }
+
+      function cloneGrid(grid) {
+        return grid.map((row) => row.slice());
+      }
+
+      function gridPoints(grid) {
+        const points = [];
+
+        for (let row = 0; row < ROWS; row += 1) {
+          for (let col = 0; col < COLS; col += 1) {
+            if (grid[row][col]) {
+              points.push({ row, col });
+            }
+          }
+        }
+
+        return points;
+      }
+
+      function setGridPixel(grid, row, col) {
+        if (row < 0 || row >= ROWS || col < 0 || col >= COLS) {
+          return;
+        }
+
+        grid[row][col] = true;
+      }
+
+      function formatTime(date) {
+        return `${padTime(date.getHours())}:${padTime(date.getMinutes())}${padTime(date.getSeconds())}`;
+      }
+
+      function padTime(value) {
+        return String(value).padStart(2, "0");
+      }
+
+      function secondStamp(date) {
+        return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${date.getHours()}-${date.getMinutes()}-${date.getSeconds()}`;
+      }
+
+      function minuteChanged(previousDate, nextDate) {
+        return previousDate.getFullYear() !== nextDate.getFullYear()
+          || previousDate.getMonth() !== nextDate.getMonth()
+          || previousDate.getDate() !== nextDate.getDate()
+          || previousDate.getHours() !== nextDate.getHours()
+          || previousDate.getMinutes() !== nextDate.getMinutes();
+      }
+
+      function addMinutes(date, minutes) {
+        return new Date(date.getTime() + minutes * 60 * 1000);
+      }
+
+      function addSeconds(date, seconds) {
+        return new Date(date.getTime() + seconds * 1000);
+      }
+
+      function shuffle(items) {
+        const copy = items.slice();
+
+        for (let index = copy.length - 1; index > 0; index -= 1) {
+          const swapIndex = Math.floor(Math.random() * (index + 1));
+          [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]];
+        }
+
+        return copy;
+      }
+
+      function clamp01(value) {
+        return Math.min(1, Math.max(0, value));
+      }
+
+      function lerp(start, end, amount) {
+        return start + (end - start) * amount;
+      }
+
+      function easeInCubic(value) {
+        return value * value * value;
+      }
+
+      function easeInQuad(value) {
+        return value * value;
+      }
+
+      function easeOutCubic(value) {
+        return 1 - Math.pow(1 - value, 3);
+      }
+
+    </script>
+  </body>
+</html>

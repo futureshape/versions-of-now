@@ -1,0 +1,36 @@
+# Shared network settings for ESPHome devices in this project.
+#
+# Replace these placeholders before flashing, or override the substitutions in
+# a device-specific YAML file if one clock needs different credentials.
+substitutions:
+  wifi_ssid: "neutrino"
+  wifi_password: "REDACTED_WIFI_PASSWORD"
+  web_username: "admin"
+  web_password: "REDACTED_PASSWORD"
+  ota_password: "REDACTED_PASSWORD"
+  timezone: "Europe/London"
+
+wifi:
+  ssid: "${wifi_ssid}"
+  password: "${wifi_password}"
+
+web_server:
+  port: 80
+  version: 3
+  local: true
+  auth:
+    username: "${web_username}"
+    password: "${web_password}"
+
+ota:
+  - platform: esphome
+    password: "${ota_password}"
+
+time:
+  - platform: sntp
+    id: ntp_time
+    timezone: "${timezone}"
+    servers:
+      - 0.pool.ntp.org
+      - 1.pool.ntp.org
+      - 2.pool.ntp.org
