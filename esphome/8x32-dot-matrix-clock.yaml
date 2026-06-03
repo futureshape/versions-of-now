@@ -133,6 +133,14 @@ button:
             id(requested_animation_mode) = 0;
           }
 
+font:
+  # Public domain 5x7 BDF from IT-Studio-Rech/bdf-fonts; ESPHome recommends
+  # bitmap fonts for 8 pixel high MAX7219 matrix displays.
+  - file: "fonts/5x7.bdf"
+    id: startup_debug_font
+    glyphs:
+      - " WIFCONEGTP0123456789."
+
 display:
   - platform: max7219digit
     id: matrix_display
@@ -258,6 +266,30 @@ display:
         }
       };
 
+      auto render_startup_message = [&](const char *text, uint32_t scroll_ms) {
+        it.fill(COLOR_OFF);
+        it.intensity((uint8_t) id(display_intensity).state);
+
+        int text_x = 0;
+        int text_y = 0;
+        int text_width = 0;
+        int text_height = 0;
+        it.get_text_bounds(
+          0,
+          0,
+          text,
+          id(startup_debug_font),
+          TextAlign::TOP_LEFT,
+          &text_x,
+          &text_y,
+          &text_width,
+          &text_height
+        );
+
+        int offset = (scroll_ms / 45) % (text_width + 32);
+        it.print(32 - offset, 0, id(startup_debug_font), COLOR_ON, text);
+      };
+
       auto minute_changed = [](int previous_seconds, int next_seconds) -> bool {
         return (previous_seconds / 60) != (next_seconds / 60);
       };
@@ -273,6 +305,33 @@ display:
       auto now = id(ntp_time).now();
       uint32_t output[8];
       clear_grid(output);
+      static bool startup_wifi_debug_done = false;
+      static uint32_t wifi_connected_at = 0;
+      static char startup_wifi_message[48] = "WIFI CONNECTING";
+
+      if (!startup_wifi_debug_done) {
+        if (!network::is_connected()) {
+          wifi_connected_at = 0;
+          snprintf(startup_wifi_message, sizeof(startup_wifi_message), "WIFI CONNECTING");
+          render_startup_message(startup_wifi_message, now_ms);
+          return;
+        }
+
+        if (wifi_connected_at == 0) {
+          char ip_address[network::IP_ADDRESS_BUFFER_SIZE];
+          auto ip_addresses = network::get_ip_addresses();
+          ip_addresses[0].str_to(ip_address);
+          snprintf(startup_wifi_message, sizeof(startup_wifi_message), "IP %s", ip_address);
+          wifi_connected_at = now_ms;
+        }
+
+        if (now_ms - wifi_connected_at < 12000) {
+          render_startup_message(startup_wifi_message, now_ms - wifi_connected_at);
+          return;
+        }
+
+        startup_wifi_debug_done = true;
+      }
 
       if (!now.is_valid()) {
         draw_grid(output);
