@@ -262,11 +262,11 @@ display:
         return (previous_seconds / 60) != (next_seconds / 60);
       };
 
-      auto start_animation = [&](int target_seconds, int mode) {
+      auto start_animation = [&](int target_seconds, int mode, uint32_t start_ms) {
         if (id(active_animation_mode) != 0) return;
         id(target_time_seconds) = target_seconds;
         id(active_animation_mode) = mode;
-        id(animation_started_at) = millis();
+        id(animation_started_at) = start_ms;
       };
 
       uint32_t now_ms = millis();
@@ -290,7 +290,7 @@ display:
         int target = id(requested_animation_mode) == 1
           ? (id(displayed_time_seconds) + 60) % 86400
           : (id(displayed_time_seconds) + 1) % 86400;
-        start_animation(target, id(requested_animation_mode));
+        start_animation(target, id(requested_animation_mode), now_ms);
         id(requested_animation_mode) = 0;
       }
 
@@ -305,7 +305,7 @@ display:
           id(target_time_seconds) = ntp_time_seconds;
         } else {
           int mode = minute_changed(id(displayed_time_seconds), ntp_time_seconds) ? 1 : 2;
-          start_animation(ntp_time_seconds, mode);
+          start_animation(ntp_time_seconds, mode, now_ms);
         }
       }
 
@@ -364,23 +364,59 @@ display:
         }
       } else {
         float progress = (float) elapsed / duration;
-        float old_progress = clamp01(progress / 0.48f);
-        float new_progress = clamp01((progress - 0.25f) / 0.75f);
+        uint16_t changes[256];
+        int change_count = 0;
 
         for (int row = 0; row < 8; row++) {
           for (int col = 0; col < 32; col++) {
             bool old_on = pixel_is_on(previous, row, col);
             bool new_on = pixel_is_on(next, row, col);
-            float order = hash_pixel(row, col) / 65535.0f;
 
-            if (old_on && !new_on) {
-              if (order >= old_progress) set_pixel(output, row, col);
-            } else if (!old_on && new_on) {
-              if (order < new_progress) set_pixel(output, row, col);
-            } else if (old_on && new_on) {
-              set_pixel(output, row, col);
+            if (old_on == new_on) {
+              if (old_on) set_pixel(output, row, col);
+            } else {
+              changes[change_count++] = (uint16_t) (row * 32 + col);
             }
           }
+        }
+
+        auto shuffle_key = [&](uint16_t packed) -> uint16_t {
+          int row = packed / 32;
+          int col = packed % 32;
+          uint32_t value = hash_pixel(row, col) ^ ((uint32_t) id(target_time_seconds) * 40503UL);
+          value ^= value << 7;
+          value ^= value >> 9;
+          return (uint16_t) (value & 0xFFFF);
+        };
+
+        for (int index = 1; index < change_count; index++) {
+          uint16_t item = changes[index];
+          uint16_t item_key = shuffle_key(item);
+          int scan = index - 1;
+
+          while (
+            scan >= 0
+            && (
+              shuffle_key(changes[scan]) > item_key
+              || (shuffle_key(changes[scan]) == item_key && changes[scan] > item)
+            )
+          ) {
+            changes[scan + 1] = changes[scan];
+            scan--;
+          }
+
+          changes[scan + 1] = item;
+        }
+
+        int toggled_count = (int) (clamp01(progress) * change_count);
+        for (int index = 0; index < change_count; index++) {
+          int row = changes[index] / 32;
+          int col = changes[index] % 32;
+          bool pixel_on = index < toggled_count
+            ? pixel_is_on(next, row, col)
+            : pixel_is_on(previous, row, col);
+
+          if (pixel_on) set_pixel(output, row, col);
         }
       }
 
