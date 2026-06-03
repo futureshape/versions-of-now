@@ -1,0 +1,46 @@
+substitutions:
+  name: crt-bbc-clock
+  friendly_name: "CRT BBC Clock"
+  # aquaticus/esp32_composite_video_lib drives composite video from the
+  # original ESP32 DAC output on GPIO25. Use the resistor network shown in the
+  # library docs before connecting this pin to a composite input.
+  composite_video_pin: GPIO25
+  status_led_pin: GPIO2
+
+packages:
+  network: !include shared/network.yaml
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+
+external_components:
+  - source:
+      type: local
+      path: components
+    components:
+      - crt_bbc_clock
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+    advanced:
+      compiler_optimization: PERF
+    sdkconfig_options:
+      CONFIG_VIDEO_ENABLE_LVGL_SUPPORT: "n"
+      CONFIG_VIDEO_DIAG_DISPLAY_TEST_FUNC: "y"
+      CONFIG_VIDEO_DIAG_ENABLE_INTERRUPT_STATS: "n"
+      CONFIG_VIDEO_ENABLE_DIAG_PIN: "n"
+
+logger:
+
+status_led:
+  pin:
+    number: ${status_led_pin}
+    inverted: false
+    ignore_strapping_warning: true
+
+crt_bbc_clock:
+  id: crt_clock
+  time_id: ntp_time

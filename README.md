@@ -34,6 +34,19 @@ esphome/fonts/
 The display shows `HH:MMSS` on an 8x32 LED matrix. Seconds use a one-by-one
 pixel swap animation, while minute changes use a falling-pixel transition.
 
+### CRT BBC Clock
+
+- Simulator: `simulator/crt-bbc-clock.html`
+- ESPHome config: `esphome/crt-bbc-clock.yaml`
+- Display platform: ESP32 composite video on GPIO25 DAC
+- Video library: vendored `aquaticus/esp32_composite_video_lib`
+- Time source: NTP via shared ESPHome config
+- Home Assistant: intentionally not configured
+
+The display renders a black-and-white BBC-style mechanical clock ident for
+EMF26 on PAL composite video. See `docs/CRT_BBC_CLOCK.md` for hardware and
+library notes.
+
 ## Development Workflow
 
 1. Prototype display layout and animation in `simulator/`.
