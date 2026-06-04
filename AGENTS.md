@@ -21,6 +21,9 @@ a MAX7219 dot matrix display.
 - Prefer simple, explicit code over clever abstractions.
 - Add documentation when introducing a new display type, font, shared package,
   or hardware assumption.
+- Do not commit real credentials or secrets. ESPHome secrets belong in
+  `esphome/secrets.yaml`, which must remain gitignored; tracked config should
+  reference them with `!secret`.
 - Do not add Home Assistant API, MQTT, Wi-Fi AP fallback, cloud dependencies, or
   new frameworks unless the user asks for them.
 
