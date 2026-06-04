@@ -1,0 +1,138 @@
+substitutions:
+  name: nokia-beats-clock
+  friendly_name: "Nokia Beats Clock"
+  # ESP32-DevKitC V4 / classic ESP32 VSPI pins. PCD8544 DIN connects to MOSI.
+  spi_clk_pin: GPIO18
+  spi_mosi_pin: GPIO23
+  display_cs_pin: GPIO5
+  display_dc_pin: GPIO25
+  display_reset_pin: GPIO26
+  # PCD8544 contrast is module-dependent; 96 is a conservative starting point.
+  display_contrast: "96"
+  # Many ESP32 DevKitC-style boards/clones use GPIO2 for a controllable blue LED.
+  # Official Espressif DevKitC V4 boards may only have a power LED; in that case
+  # move this to an external LED pin or remove the status_led block.
+  status_led_pin: GPIO2
+
+packages:
+  network: !include shared/network.yaml
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+logger:
+
+status_led:
+  pin:
+    number: ${status_led_pin}
+    inverted: false
+    ignore_strapping_warning: true
+
+spi:
+  clk_pin: ${spi_clk_pin}
+  mosi_pin: ${spi_mosi_pin}
+
+globals:
+  - id: last_lcd_contrast
+    type: int
+    restore_value: false
+    initial_value: "-1"
+
+number:
+  - platform: template
+    id: lcd_contrast
+    name: "LCD Contrast"
+    optimistic: true
+    restore_value: true
+    min_value: 40
+    max_value: 127
+    step: 1
+    initial_value: ${display_contrast}
+    mode: slider
+
+font:
+  # Orbitron SemiBold gives the main beats readout a geometric, clock-like
+  # voice while keeping the font source managed by ESPHome's gfonts support.
+  - file:
+      type: gfonts
+      family: Orbitron
+      weight: 600
+    id: beats_font
+    size: 27
+    bpp: 1
+    glyphs:
+      - "@-0123456789"
+
+  # Public-domain 5x7 bitmap font for crisp label text on the 1-bit LCD.
+  - file: "fonts/5x7.bdf"
+    id: label_font
+    glyphs:
+      - " SWATCHINERMGFOPLYK"
+
+display:
+  - platform: pcd8544
+    id: swatch_display
+    reset_pin: ${display_reset_pin}
+    cs_pin:
+      number: ${display_cs_pin}
+      ignore_strapping_warning: true
+    dc_pin: ${display_dc_pin}
+    contrast: ${display_contrast}
+    update_interval: 1s
+    lambda: |-
+      int contrast = (int) id(lcd_contrast).state;
+      if (contrast < 40) contrast = 40;
+      if (contrast > 127) contrast = 127;
+      if (contrast != id(last_lcd_contrast)) {
+        id(last_lcd_contrast) = contrast;
+        id(swatch_display).command(
+          id(swatch_display).PCD8544_FUNCTIONSET |
+          id(swatch_display).PCD8544_EXTENDEDINSTRUCTION
+        );
+        id(swatch_display).command(id(swatch_display).PCD8544_SETVOP | (uint8_t) contrast);
+        id(swatch_display).command(id(swatch_display).PCD8544_FUNCTIONSET);
+      }
+
+      it.fill(COLOR_OFF);
+
+      if (!esphome::wifi::global_wifi_component->is_connected()) {
+        it.print(42, 12, id(label_font), TextAlign::TOP_CENTER, "WIFI");
+        it.print(42, 23, id(label_font), TextAlign::TOP_CENTER, "CONNECTING");
+        return;
+      }
+
+      auto now = id(ntp_time).utcnow();
+      if (!now.is_valid()) {
+        it.print(42, 12, id(label_font), TextAlign::TOP_CENTER, "WIFI OK");
+        it.print(42, 23, id(label_font), TextAlign::TOP_CENTER, "NTP SYNC");
+        return;
+      }
+
+      // Swatch Internet Time uses Biel Mean Time: UTC+1 without DST.
+      int utc_day_seconds = (int) (now.timestamp % 86400);
+      int bmt_day_seconds = (utc_day_seconds + 3600) % 86400;
+      int beats = (bmt_day_seconds * 1000) / 86400;
+      char beats_text[5];
+      snprintf(beats_text, sizeof(beats_text), "@%03d", beats);
+
+      int x1 = 0;
+      int y1 = 0;
+      int text_width = 0;
+      int text_height = 0;
+      it.get_text_bounds(
+        42, 0, beats_text, id(beats_font), TextAlign::TOP_CENTER,
+        &x1, &y1, &text_width, &text_height
+      );
+
+      int beats_y = (34 - text_height) / 2;
+      if (beats_y < -4) beats_y = -4;
+      it.print(42, beats_y, id(beats_font), TextAlign::TOP_CENTER, beats_text);
+
+      it.print(42, 34, id(label_font), TextAlign::TOP_CENTER, "SWATCH");
+      it.print(42, 41, id(label_font), TextAlign::TOP_CENTER, "INTERNET TIME");

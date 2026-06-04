@@ -47,6 +47,18 @@ The display renders a black-and-white BBC-style mechanical clock ident for
 EMF26 on PAL composite video. See `docs/CRT_BBC_CLOCK.md` for hardware and
 library notes.
 
+### PCD8544 Swatch Internet Time Clock
+
+- ESPHome config: `esphome/nokia-beats-clock.yaml`
+- Display platform: `pcd8544`
+- Time source: NTP via shared ESPHome config
+- Home Assistant: intentionally not configured
+
+The display shows Swatch Internet Time as `@xxx` on an 84x48 Nokia 5110-style
+LCD, with a small `SWATCH INTERNET TIME` label. See
+`docs/PCD8544_SWATCH_INTERNET_TIME_CLOCK.md` for hardware, font, and beat
+calculation notes.
+
 ## Development Workflow
 
 1. Prototype display layout and animation in `simulator/`.

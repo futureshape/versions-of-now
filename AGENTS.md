@@ -52,6 +52,8 @@ packages:
 - Do not add AP fallback.
 - Do not add Home Assistant API or MQTT by default.
 - Use `logger:` when local serial/log debugging is useful.
+- When a physical display is available during startup, show compact on-screen
+  diagnostics where practical, especially Wi-Fi connection and time-sync status.
 - Remove temporary high-frequency debug logs before finishing.
 
 ## Display Lambdas And MCU Constraints
