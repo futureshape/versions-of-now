@@ -73,7 +73,7 @@ font:
   - file: "fonts/5x7.bdf"
     id: label_font
     glyphs:
-      - " SWATCHINERMGFOPLYK"
+      - " SWATCHINERMGFOPLYK0123456789."
 
 display:
   - platform: pcd8544
@@ -109,8 +109,14 @@ display:
 
       auto now = id(ntp_time).utcnow();
       if (!now.is_valid()) {
-        it.print(42, 12, id(label_font), TextAlign::TOP_CENTER, "WIFI OK");
-        it.print(42, 23, id(label_font), TextAlign::TOP_CENTER, "NTP SYNC");
+        auto addresses = esphome::wifi::global_wifi_component->wifi_sta_ip_addresses();
+        char ip_text[esphome::network::IP_ADDRESS_BUFFER_SIZE] = "NO IP";
+        if (addresses[0].is_set()) {
+          addresses[0].str_to(ip_text);
+        }
+        it.print(42, 5, id(label_font), TextAlign::TOP_CENTER, "WIFI OK");
+        it.print(42, 17, id(label_font), TextAlign::TOP_CENTER, ip_text);
+        it.print(42, 29, id(label_font), TextAlign::TOP_CENTER, "NTP SYNC");
         return;
       }
 

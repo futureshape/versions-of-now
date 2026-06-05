@@ -44,10 +44,11 @@ CONNECTING
 ```
 
 Once Wi-Fi is connected but NTP has not produced a valid timestamp yet, it
-shows:
+shows the Wi-Fi status, station IP address, and NTP status:
 
 ```text
 WIFI OK
+192.168.1.23
 NTP SYNC
 ```
 
