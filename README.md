@@ -59,6 +59,17 @@ LCD, with a small `SWATCH INTERNET TIME` label. See
 `docs/PCD8544_SWATCH_INTERNET_TIME_CLOCK.md` for hardware, font, and beat
 calculation notes.
 
+### Flip Digits Clock
+
+- ESPHome config: `esphome/flpidigits-clock.yaml`
+- Display platform: four FlipDigitSSB seven-segment controllers over RS485
+- Time source: NTP via shared ESPHome config
+- Home Assistant: intentionally not configured
+
+The display shows local `HHMM` time on four flip-digit seven-segment modules
+driven through a MAX485-based TTL serial to RS485 transceiver. See
+`docs/FLPIDIGITS_CLOCK.md` for protocol, wiring, and address notes.
+
 ## Development Workflow
 
 1. Prototype display layout and animation in `simulator/`.

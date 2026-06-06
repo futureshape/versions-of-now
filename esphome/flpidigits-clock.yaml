@@ -1,0 +1,204 @@
+substitutions:
+  name: flpidigits-clock
+  friendly_name: "Flip Digits Clock"
+  # ESP32 UART2 defaults. Connect ESP32 TX to the transceiver board RXD and
+  # ESP32 RX to the transceiver board TXD.
+  rs485_tx_pin: GPIO17
+  rs485_rx_pin: GPIO16
+  rs485_baud_rate: "9600"
+  # FlipDigitSSB addresses for HH:MM from left to right. Address 255 is the
+  # broadcast address per the protocol document, so keep digit addresses 0..254.
+  hours_tens_address: "0"
+  hours_ones_address: "1"
+  minutes_tens_address: "2"
+  minutes_ones_address: "3"
+  # Many ESP32 DevKitC-style boards/clones use GPIO2 for a controllable blue LED.
+  # Official Espressif DevKitC V4 boards may only have a power LED; in that case
+  # move this to an external LED pin or remove the status_led block.
+  status_led_pin: GPIO2
+
+packages:
+  network: !include shared/network.yaml
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+logger:
+
+status_led:
+  pin:
+    number: ${status_led_pin}
+    inverted: false
+    ignore_strapping_warning: true
+
+uart:
+  id: flipdigit_uart
+  tx_pin: ${rs485_tx_pin}
+  rx_pin: ${rs485_rx_pin}
+  baud_rate: ${rs485_baud_rate}
+  data_bits: 8
+  parity: NONE
+  stop_bits: 1
+
+globals:
+  - id: last_display_code
+    type: int
+    restore_value: false
+    initial_value: "-1"
+  - id: manual_display_mode
+    type: int
+    restore_value: false
+    initial_value: "0"
+  - id: manual_display_until
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+  - id: force_refresh_requested
+    type: bool
+    restore_value: false
+    initial_value: "true"
+
+switch:
+  - platform: template
+    id: display_enabled
+    name: "Display Enabled"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+
+number:
+  - platform: template
+    id: test_pattern_seconds
+    name: "Test Pattern Duration"
+    optimistic: true
+    restore_value: true
+    min_value: 1
+    max_value: 30
+    step: 1
+    initial_value: 6
+    unit_of_measurement: "s"
+    mode: slider
+
+button:
+  - platform: template
+    name: "Refresh Display"
+    on_press:
+      - lambda: |-
+          id(force_refresh_requested) = true;
+
+  - platform: template
+    name: "Test All Segments"
+    on_press:
+      - lambda: |-
+          id(manual_display_mode) = 1;
+          id(manual_display_until) = millis() + (uint32_t) (id(test_pattern_seconds).state * 1000.0f);
+          id(force_refresh_requested) = true;
+
+  - platform: template
+    name: "Show Dashes"
+    on_press:
+      - lambda: |-
+          id(manual_display_mode) = 2;
+          id(manual_display_until) = millis() + (uint32_t) (id(test_pattern_seconds).state * 1000.0f);
+          id(force_refresh_requested) = true;
+
+interval:
+  - interval: 1s
+    then:
+      - lambda: |-
+          static const uint8_t DIGIT_ADDRESSES[4] = {
+            ${hours_tens_address},
+            ${hours_ones_address},
+            ${minutes_tens_address},
+            ${minutes_ones_address},
+          };
+
+          // FlipDigitSSB data uses bits B6..B0. The manual describes these as
+          // segments from top to bottom; this map assumes:
+          // B6 top, B5 upper-left, B4 upper-right, B3 middle,
+          // B2 lower-left, B1 lower-right, B0 bottom.
+          static const uint8_t SEGMENTS_FOR_DIGIT[10] = {
+            0x77, // 0
+            0x12, // 1
+            0x5D, // 2
+            0x5B, // 3
+            0x3A, // 4
+            0x6B, // 5
+            0x6F, // 6
+            0x52, // 7
+            0x7F, // 8
+            0x7B, // 9
+          };
+          const uint8_t SEGMENT_BLANK = 0x00;
+          const uint8_t SEGMENT_DASH = 0x08;
+
+          uint8_t patterns[4] = {
+            SEGMENT_BLANK,
+            SEGMENT_BLANK,
+            SEGMENT_BLANK,
+            SEGMENT_BLANK,
+          };
+          int display_code = 0;
+
+          auto set_all = [&](uint8_t pattern) {
+            for (uint8_t i = 0; i < 4; i++) {
+              patterns[i] = pattern;
+            }
+          };
+
+          uint32_t now_ms = millis();
+          bool manual_active = (int32_t) (id(manual_display_until) - now_ms) > 0;
+
+          if (!id(display_enabled).state) {
+            display_code = 0;
+            set_all(SEGMENT_BLANK);
+          } else if (manual_active && id(manual_display_mode) == 1) {
+            display_code = 40001;
+            set_all(SEGMENTS_FOR_DIGIT[8]);
+          } else if (manual_active && id(manual_display_mode) == 2) {
+            display_code = 40002;
+            set_all(SEGMENT_DASH);
+          } else if (!esphome::wifi::global_wifi_component->is_connected()) {
+            // Compact startup diagnostic: dashes mean Wi-Fi is still connecting.
+            id(manual_display_mode) = 0;
+            display_code = 20000;
+            set_all(SEGMENT_DASH);
+          } else {
+            id(manual_display_mode) = 0;
+            auto now = id(ntp_time).now();
+            if (!now.is_valid()) {
+              // Wi-Fi is up but SNTP has not produced a valid local time yet.
+              display_code = 30000;
+              set_all(SEGMENTS_FOR_DIGIT[0]);
+            } else {
+              int minute_of_day = now.hour * 60 + now.minute;
+              display_code = 10000 + minute_of_day;
+              patterns[0] = SEGMENTS_FOR_DIGIT[now.hour / 10];
+              patterns[1] = SEGMENTS_FOR_DIGIT[now.hour % 10];
+              patterns[2] = SEGMENTS_FOR_DIGIT[now.minute / 10];
+              patterns[3] = SEGMENTS_FOR_DIGIT[now.minute % 10];
+            }
+          }
+
+          if (!id(force_refresh_requested) && display_code == id(last_display_code)) {
+            return;
+          }
+
+          id(force_refresh_requested) = false;
+          id(last_display_code) = display_code;
+
+          for (uint8_t i = 0; i < 4; i++) {
+            uint8_t frame[5] = {
+              0x80,
+              0x89,
+              DIGIT_ADDRESSES[i],
+              (uint8_t) (patterns[i] & 0x7F),
+              0x8F,
+            };
+            id(flipdigit_uart).write_array(frame, sizeof(frame));
+          }
