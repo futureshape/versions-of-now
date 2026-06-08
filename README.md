@@ -70,9 +70,25 @@ The display shows local `HHMM` time on four flip-digit seven-segment modules
 driven through a MAX485-based TTL serial to RS485 transceiver. See
 `docs/FLPIDIGITS_CLOCK.md` for protocol, wiring, and address notes.
 
+### VFD Clock
+
+- ESPHome config: `esphome/vfd-clock.yaml`
+- Display platform: Wincor Nixdorf BA63 2x20 VFD over RS232 serial
+- Time source: NTP via shared ESPHome config
+- Home Assistant: intentionally not configured
+
+The display starts with `CONNECTING TO WIFI`, then shows the assigned IP address,
+then shows local `HH:MM:SS` on the first line with a seconds progress bar on the
+second line once NTP time is valid. See `docs/VFD_CLOCK.md` for BA63 serial
+settings, wiring, and control-sequence notes.
+
+For the current ESPHome UART settings, configure the BA63 jumpers as JP1 OUT,
+JP2 OUT, JP3 IN, JP4 IN, JP5 OUT: 9600 baud, parity on, odd parity, normal
+operation.
+
 ## Development Workflow
 
-1. Prototype display layout and animation in `simulator/`.
+1. Prototype display layout and animation in `simulator/` (if neceesary, otherwise skip to esphome)
 2. Keep each simulator as a single HTML file so it can be opened directly.
 3. Port the chosen behavior to an ESPHome YAML file in `esphome/`.
 4. Keep reusable network, time, OTA, and web-server settings in

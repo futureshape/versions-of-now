@@ -1,0 +1,178 @@
+substitutions:
+  name: vfd-clock
+  friendly_name: "VFD Clock"
+  # ESP32 UART2 TX default. The BA63 has an RS232 interface, so put a proper
+  # TTL-to-RS232 level shifter between this pin and the display.
+  ba63_tx_pin: GPIO17
+  ba63_baud_rate: "9600"
+  # Many ESP32 DevKitC-style boards/clones use GPIO2 for a controllable blue LED.
+  # Official Espressif DevKitC V4 boards may only have a power LED; in that case
+  # move this to an external LED pin or remove the status_led block.
+  status_led_pin: GPIO2
+
+packages:
+  network: !include shared/network.yaml
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+logger:
+
+status_led:
+  pin:
+    number: ${status_led_pin}
+    inverted: false
+    ignore_strapping_warning: true
+
+uart:
+  id: ba63_uart
+  tx_pin: ${ba63_tx_pin}
+  baud_rate: ${ba63_baud_rate}
+  data_bits: 8
+  parity: ODD
+  stop_bits: 1
+
+globals:
+  - id: last_display_code
+    type: int
+    restore_value: false
+    initial_value: "-1"
+  - id: force_refresh_requested
+    type: bool
+    restore_value: false
+    initial_value: "true"
+
+switch:
+  - platform: template
+    id: display_enabled
+    name: "Display Enabled"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    on_turn_on:
+      - lambda: |-
+          id(force_refresh_requested) = true;
+    on_turn_off:
+      - lambda: |-
+          id(force_refresh_requested) = true;
+
+button:
+  - platform: template
+    name: "Refresh Display"
+    on_press:
+      - lambda: |-
+          id(force_refresh_requested) = true;
+
+interval:
+  - interval: 1s
+    then:
+      - lambda: |-
+          static const uint8_t BA63_CLEAR[] = {0x1B, '[', '2', 'J'};
+          static const uint8_t BA63_LINE_1[] = {0x1B, '[', '1', ';', '1', 'H'};
+          static const uint8_t BA63_LINE_2[] = {0x1B, '[', '2', ';', '1', 'H'};
+          static const int DISPLAY_COLUMNS = 20;
+
+          auto center_into = [](const char *text, char row[DISPLAY_COLUMNS + 1]) {
+            for (int i = 0; i < DISPLAY_COLUMNS; i++) {
+              row[i] = ' ';
+            }
+            row[DISPLAY_COLUMNS] = '\0';
+
+            int text_len = 0;
+            while (text[text_len] != '\0' && text_len < DISPLAY_COLUMNS) {
+              text_len++;
+            }
+
+            int start = (DISPLAY_COLUMNS - text_len) / 2;
+            for (int i = 0; i < text_len; i++) {
+              row[start + i] = text[i];
+            }
+          };
+
+          auto write_frame = [&](const char row1[DISPLAY_COLUMNS + 1], const char row2[DISPLAY_COLUMNS + 1]) {
+            id(ba63_uart).write_array(BA63_LINE_1, sizeof(BA63_LINE_1));
+            id(ba63_uart).write_array((const uint8_t *) row1, DISPLAY_COLUMNS);
+            id(ba63_uart).write_array(BA63_LINE_2, sizeof(BA63_LINE_2));
+            id(ba63_uart).write_array((const uint8_t *) row2, DISPLAY_COLUMNS);
+          };
+
+          auto render_seconds_bar = [](int second, char row[DISPLAY_COLUMNS + 1]) {
+            // 60 seconds maps cleanly to 20 characters: each cell has three
+            // phases before becoming full.
+            for (int col = 0; col < DISPLAY_COLUMNS; col++) {
+              int elapsed_in_cell = second - col * 3;
+              if (elapsed_in_cell >= 3) {
+                row[col] = (char) 0xF0;
+              } else if (elapsed_in_cell == 2) {
+                row[col] = '=';
+              } else if (elapsed_in_cell == 1) {
+                row[col] = '-';
+              } else {
+                row[col] = ' ';
+              }
+            }
+            row[DISPLAY_COLUMNS] = '\0';
+          };
+
+          char row1[DISPLAY_COLUMNS + 1];
+          char row2[DISPLAY_COLUMNS + 1];
+          int display_code = 0;
+
+          if (!id(display_enabled).state) {
+            display_code = 0;
+            if (id(force_refresh_requested) || display_code != id(last_display_code)) {
+              id(ba63_uart).write_array(BA63_CLEAR, sizeof(BA63_CLEAR));
+              id(force_refresh_requested) = false;
+              id(last_display_code) = display_code;
+            }
+            return;
+          }
+
+          if (!esphome::wifi::global_wifi_component->is_connected()) {
+            int dot_count = (millis() / 1000) % 4;
+            char dots[DISPLAY_COLUMNS + 1];
+            for (int i = 0; i < DISPLAY_COLUMNS; i++) {
+              dots[i] = '\0';
+            }
+            for (int i = 0; i < dot_count; i++) {
+              dots[i] = '.';
+            }
+            dots[dot_count] = '\0';
+
+            display_code = 20000 + dot_count;
+            center_into("CONNECTING TO WIFI", row1);
+            center_into(dots, row2);
+          } else {
+            auto now = id(ntp_time).now();
+            if (!now.is_valid()) {
+              auto addresses = esphome::wifi::global_wifi_component->wifi_sta_ip_addresses();
+              char ip_text[esphome::network::IP_ADDRESS_BUFFER_SIZE] = "NO IP";
+              if (addresses[0].is_set()) {
+                addresses[0].str_to(ip_text);
+              }
+
+              display_code = 30000;
+              center_into("IP ADDRESS", row1);
+              center_into(ip_text, row2);
+            } else {
+              char time_text[9];
+              snprintf(time_text, sizeof(time_text), "%02d:%02d:%02d", now.hour, now.minute, now.second);
+
+              display_code = 40000 + now.hour * 3600 + now.minute * 60 + now.second;
+              center_into(time_text, row1);
+              render_seconds_bar(now.second, row2);
+            }
+          }
+
+          if (!id(force_refresh_requested) && display_code == id(last_display_code)) {
+            return;
+          }
+
+          id(force_refresh_requested) = false;
+          id(last_display_code) = display_code;
+          write_frame(row1, row2);
