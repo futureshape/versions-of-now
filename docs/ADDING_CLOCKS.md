@@ -15,10 +15,15 @@ simulator/64x32-rgb-matrix-clock.html
 esphome/64x32-rgb-matrix-clock.yaml
 simulator/4-digit-seven-segment-clock.html
 esphome/4-digit-seven-segment-clock.yaml
+rpi/xdaliclock-hyperpixel-square/
 ```
 
 Keep simulator and ESPHome filenames aligned so it is obvious which prototype
 maps to which device.
+
+For Raspberry Pi based clocks, create a folder under `rpi/` named after the
+clock/display combination. Include a `README.md` with hardware assumptions and
+an installer or provisioning script that can be rerun on a fresh OS image.
 
 ## Simulator First
 
@@ -49,6 +54,21 @@ Each device YAML should define:
 Use shared package fragments for behavior that will be common to most clocks.
 Keep display-specific behavior in the device YAML unless two or more clocks
 really share the same implementation.
+
+## Raspberry Pi Installs
+
+Use Raspberry Pi only when a clock genuinely benefits from a Linux display stack
+or browser runtime. Keep the installation reproducible:
+
+- Recommend a specific Raspberry Pi OS image family.
+- Keep runtime dependencies installed by a script, not by undocumented manual
+  package selection.
+- Document display overlays, GPIO conflicts, rotation, and network assumptions.
+- Use dedicated local users and systemd/autologin configuration for kiosk clocks.
+- Keep secrets out of the repository; put Wi-Fi and SSH setup in Raspberry Pi
+  Imager or another local provisioning step.
+- Prefer built-in kernel overlays over vendor legacy installers when current
+  hardware and OS releases support them.
 
 ## Animation Guidelines
 

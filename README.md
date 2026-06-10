@@ -13,6 +13,9 @@ simulator/
 esphome/
   ESPHome device configurations for physical clocks.
 
+rpi/
+  Raspberry Pi based clock installs and provisioning scripts.
+
 esphome/shared/
   Shared ESPHome package fragments used by multiple clocks.
 
@@ -86,6 +89,16 @@ For the current ESPHome UART settings, configure the BA63 jumpers as JP1 OUT,
 JP2 OUT, JP3 IN, JP4 IN, JP5 OUT: 9600 baud, parity on, odd parity, normal
 operation.
 
+### Dali Clock on HyperPixel 4.0 Square
+
+- Raspberry Pi install: `rpi/xdaliclock-hyperpixel-square/`
+- Display: Pimoroni HyperPixel 4.0 Square, 720x720 DPI display
+- Runtime: Raspberry Pi OS Lite with a minimal X11 session running `xdaliclock`
+
+The Pi boots directly into Jamie Zawinski's native Linux/X11 Dali Clock app.
+See `rpi/xdaliclock-hyperpixel-square/README.md` for SD-card setup and
+HyperPixel driver notes.
+
 ## Development Workflow
 
 1. Prototype display layout and animation in `simulator/` (if neceesary, otherwise skip to esphome)
@@ -93,7 +106,9 @@ operation.
 3. Port the chosen behavior to an ESPHome YAML file in `esphome/`.
 4. Keep reusable network, time, OTA, and web-server settings in
    `esphome/shared/`.
-5. Validate ESPHome changes before flashing:
+5. For Raspberry Pi clocks, keep each install in `rpi/<clock-name>/` with a
+   README and an explicit provisioning script.
+6. Validate ESPHome changes before flashing:
 
 ```sh
 esphome config esphome/<clock-name>.yaml
