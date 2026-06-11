@@ -137,9 +137,10 @@ display:
       static const int OBJECT_RESPAWN_MARGIN = 18;
       static const int OBJECT_SPAWN_PAD = 10;
       static const uint8_t DUST_EROSION_THRESHOLD = 66;  // 66 / 256 ~= 0.26.
+      static const uint8_t TRAIL_MAX_GRAY = 15;  // SSD1322 stores one 4-bit grayscale nibble per pixel.
 
-      // Custom 5x7 digit font shared with the HTML simulator. The SSD1322 can
-      // do grayscale, but this clock intentionally renders as 1-bit on/off.
+      // Custom 5x7 digit font shared with the HTML simulator. The clock body is
+      // written at full brightness; older trail pixels fade through SSD1322 grayscale.
       static const uint8_t GLYPHS[11][7] = {
         {0b01110, 0b10001, 0b10011, 0b10101, 0b11001, 0b10001, 0b01110}, // 0
         {0b00100, 0b01100, 0b10100, 0b00100, 0b00100, 0b00100, 0b11111}, // 1
@@ -256,6 +257,17 @@ display:
       auto trail_life = [&]() -> uint8_t {
         int life = (int) id(trail_life_frames).state;
         return (uint8_t) clamp_int(life, 6, 48);
+      };
+
+      auto gray_color = [](uint8_t gray) -> Color {
+        if (gray > TRAIL_MAX_GRAY) gray = TRAIL_MAX_GRAY;
+        return Color(0, 0, 0, gray * 17);
+      };
+
+      auto trail_gray = [&](uint8_t remaining_life, uint8_t max_life) -> uint8_t {
+        if (remaining_life == 0) return 0;
+        uint8_t gray = (uint8_t) (((uint16_t) remaining_life * TRAIL_MAX_GRAY + max_life - 1) / max_life);
+        return gray < 1 ? 1 : gray;
       };
 
       auto spawn_burst = [&](float x, float y, int count) {
@@ -650,10 +662,12 @@ display:
       update_particles_to_trail(dt);
 
       it.fill(COLOR_OFF);
+      uint8_t max_life = trail_life();
       for (int y = 0; y < HEIGHT; y++) {
         for (int x = 0; x < WIDTH; x++) {
-          if (trail[y * WIDTH + x] > 0) {
-            it.draw_pixel_at(x, y, COLOR_ON);
+          uint8_t remaining_life = trail[y * WIDTH + x];
+          if (remaining_life > 0) {
+            it.draw_pixel_at(x, y, gray_color(trail_gray(remaining_life, max_life)));
           }
         }
       }

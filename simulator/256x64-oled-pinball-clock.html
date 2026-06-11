@@ -336,6 +336,7 @@
       const OBJECT_RESPAWN_MARGIN = 18;
       const OBJECT_SPAWN_PAD = 10;
       const DUST_EROSION_CHANCE = 0.26;
+      const OLED_GRAY_LEVELS = 15;
       const OLED_ON = { r: 226, g: 255, b: 246 };
       const GLYPHS = createFont({
         "0": `
@@ -764,10 +765,10 @@
         const trail = state.trail;
 
         for (let index = 0, pixel = 0; index < trail.length; index += 1, pixel += 4) {
-          const on = trail[index] > 0;
-          data[pixel] = on ? OLED_ON.r : 0;
-          data[pixel + 1] = on ? OLED_ON.g : 0;
-          data[pixel + 2] = on ? OLED_ON.b : 0;
+          const gray = trailGrayLevel(trail[index]);
+          data[pixel] = Math.round(OLED_ON.r * gray / OLED_GRAY_LEVELS);
+          data[pixel + 1] = Math.round(OLED_ON.g * gray / OLED_GRAY_LEVELS);
+          data[pixel + 2] = Math.round(OLED_ON.b * gray / OLED_GRAY_LEVELS);
           data[pixel + 3] = 255;
         }
 
@@ -1012,6 +1013,14 @@
 
       function trailLife() {
         return Number(elements.trail.value);
+      }
+
+      function trailGrayLevel(remainingLife) {
+        if (remainingLife <= 0) {
+          return 0;
+        }
+
+        return Math.max(1, Math.min(OLED_GRAY_LEVELS, Math.ceil(remainingLife * OLED_GRAY_LEVELS / trailLife())));
       }
 
       function clockCenterX() {

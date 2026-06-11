@@ -58,11 +58,11 @@ library notes.
 - Time source: NTP via shared ESPHome config
 - Home Assistant: intentionally not configured
 
-The simulator treats the time as a moving 1-bit bitmap body inside a 256x64
-OLED framebuffer. The time bounces against the screen edges while floating
-objects stream through the scene, get knocked off-screen, and respawn. Short
-on/off pixel trails erode into sparse stardust so crisp OLED text does not sit
-in one place. See `docs/SSD1322_OLED_PINBALL_CLOCK.md` for hardware and
+The simulator treats the time as a moving bitmap body inside a 256x64 OLED
+framebuffer. The time bounces against the screen edges while floating objects
+stream through the scene, get knocked off-screen, and respawn. Short grayscale
+pixel trails fade and erode into sparse stardust so crisp OLED text does not
+sit in one place. See `docs/SSD1322_OLED_PINBALL_CLOCK.md` for hardware and
 firmware notes.
 
 ### PCD8544 Swatch Internet Time Clock

@@ -19,9 +19,9 @@ a 256x64 SSD1322 OLED over 4-wire SPI.
 Many SSD1322 modules ship configured for 8-bit 80XX mode. This clock assumes
 the module has been changed to 4-wire SPI mode before flashing.
 
-The SSD1322 can render grayscale, but this clock intentionally uses the display
-as a 1-bit on/off framebuffer to match the simulator direction and reduce OLED
-burn-in risk.
+The SSD1322 renders this clock with 4-bit grayscale. The moving time body is
+written at full brightness, while older trail pixels fade down through the
+controller's 15 visible gray levels before being erased.
 
 ## Behavior
 
@@ -29,8 +29,9 @@ The time is drawn with an embedded 5x7 bitmap digit font scaled to 4x. It moves
 inside the display bounds and bounces off the screen edges. Floating objects
 stream in from off-screen, collide with the moving time body, and can be knocked
 back off-screen before new objects spawn. The trail is stored as a fixed
-256x64 byte buffer where each non-zero byte is rendered as an on pixel; old
-trail pixels erode into sparse stardust rather than grayscale fading.
+256x64 byte buffer of remaining lifetime values; each value is mapped to an
+SSD1322 grayscale level during rendering. Old trail pixels both dim and erode
+into sparse stardust.
 
 During startup, the OLED shows compact Wi-Fi and NTP diagnostics before the
 clock animation starts.
