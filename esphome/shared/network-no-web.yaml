@@ -1,0 +1,29 @@
+# Shared network settings for ESPHome devices that should not run the local
+# web server. This is useful for RP2040/Pico W targets where web_server pulls in
+# Arduino async-web dependencies that are not needed for the installation.
+#
+# Values are loaded from esphome/secrets.yaml, which is gitignored. Copy
+# esphome/secrets.example.yaml to esphome/secrets.yaml before validating or
+# flashing.
+substitutions:
+  wifi_ssid: !secret wifi_ssid
+  wifi_password: !secret wifi_password
+  ota_password: !secret ota_password
+  timezone: !secret timezone
+
+wifi:
+  ssid: "${wifi_ssid}"
+  password: "${wifi_password}"
+
+ota:
+  - platform: esphome
+    password: "${ota_password}"
+
+time:
+  - platform: sntp
+    id: ntp_time
+    timezone: "${timezone}"
+    servers:
+      - 0.pool.ntp.org
+      - 1.pool.ntp.org
+      - 2.pool.ntp.org

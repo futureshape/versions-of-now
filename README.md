@@ -65,6 +65,21 @@ pixel trails fade and erode into sparse stardust so crisp OLED text does not
 sit in one place. See `docs/SSD1322_OLED_PINBALL_CLOCK.md` for hardware and
 firmware notes.
 
+### Pico ePaper Clock
+
+- Simulator: `simulator/pico-epaper-clock.html`
+- ESPHome config: `esphome/pico-epaper-clock.yaml`
+- Display platform: local custom component `pico_epaper_4in2_v2`
+- Controller: Raspberry Pi Pico W via ESPHome `rp2040`
+- Time source: NTP via shared ESPHome config
+- Network UI: intentionally not configured on this RP2040 clock
+- Home Assistant: intentionally not configured
+
+The display shows local time in Caveat from Google Fonts, with large `HH:MM`
+and smaller seconds. It uses the Waveshare Pico-ePaper-4.2 black/white 400x300
+panel, partial refreshes seconds, and full refreshes on minute changes. See
+`docs/PICO_EPAPER_CLOCK.md` for wiring, refresh behavior, and firmware notes.
+
 ### PCD8544 Swatch Internet Time Clock
 
 - ESPHome config: `esphome/nokia-beats-clock.yaml`

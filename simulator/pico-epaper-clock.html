@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pico ePaper Clock Simulator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        color-scheme: light;
+        --page: #e8e5dc;
+        --ink: #151515;
+        --muted: #5f635c;
+        --paper: #f8f7f0;
+        --panel: #ffffff;
+        --line: #c9c4b7;
+        --button: #1c6b5a;
+        --button-text: #f7fff9;
+        --button-secondary: #2d2f36;
+        --focus: #b25f1d;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--page);
+        color: var(--ink);
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      .app {
+        min-height: 100vh;
+        display: grid;
+        grid-template-rows: minmax(0, 1fr) auto;
+      }
+
+      .stage {
+        min-height: min(78vh, 820px);
+        display: grid;
+        place-items: center;
+        padding: clamp(14px, 4vw, 44px);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(232, 229, 220, 0.34)),
+          var(--page);
+      }
+
+      .display-shell {
+        width: min(100%, 940px);
+        padding: clamp(10px, 1.8vw, 18px);
+        border: 1px solid #bdb6a6;
+        border-radius: 8px;
+        background: #f1eee5;
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.66),
+          0 22px 54px rgba(47, 42, 32, 0.22);
+      }
+
+      .display-window {
+        overflow: hidden;
+        border: 1px solid #a9a393;
+        border-radius: 4px;
+        background: var(--paper);
+      }
+
+      canvas {
+        display: block;
+        width: 100%;
+        aspect-ratio: 4 / 3;
+        background: var(--paper);
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(180px, 1fr));
+        gap: 12px;
+        padding: 14px;
+        border-top: 1px solid var(--line);
+        background: #f4f1e8;
+      }
+
+      .panel {
+        display: grid;
+        align-content: start;
+        gap: 12px;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+      }
+
+      .panel-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 1rem;
+        line-height: 1.1;
+      }
+
+      h2 {
+        font-size: 0.92rem;
+      }
+
+      p,
+      label,
+      output {
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .readout {
+        color: var(--ink);
+        font-size: 1.1rem;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .button-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      button {
+        min-height: 36px;
+        border: 0;
+        border-radius: 6px;
+        padding: 8px 11px;
+        background: var(--button);
+        color: var(--button-text);
+        cursor: pointer;
+        font-weight: 700;
+      }
+
+      button.secondary {
+        background: var(--button-secondary);
+      }
+
+      label {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 9px;
+      }
+
+      .switch {
+        grid-template-columns: 1fr auto;
+      }
+
+      input[type="range"] {
+        width: 100%;
+        accent-color: var(--button);
+      }
+
+      input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        accent-color: var(--button);
+      }
+
+      input[type="time"] {
+        width: 100%;
+        min-height: 36px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 7px 9px;
+        background: #fbfaf6;
+        color: var(--ink);
+      }
+
+      button:focus-visible,
+      input:focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 2px;
+      }
+
+      @media (max-width: 900px) {
+        .controls {
+          grid-template-columns: repeat(2, minmax(180px, 1fr));
+        }
+      }
+
+      @media (max-width: 560px) {
+        .stage {
+          min-height: 50vh;
+          padding: 10px;
+        }
+
+        .controls {
+          grid-template-columns: 1fr;
+          padding: 12px;
+        }
+
+        label,
+        .button-row {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <section class="stage" aria-label="400 by 300 e-paper clock simulation">
+        <div class="display-shell">
+          <div class="display-window">
+            <canvas id="display" width="400" height="300" role="img" aria-label="Pico e-paper clock simulation"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <section class="controls" aria-label="Simulator controls">
+        <div class="panel">
+          <div class="panel-head">
+            <h1>Pico ePaper Clock</h1>
+            <p class="readout" id="shownTime">--:--:--</p>
+          </div>
+          <div class="button-row">
+            <button id="refreshNow" type="button">Refresh</button>
+            <button class="secondary" id="flashNow" type="button">Flash</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Time</h2>
+          </div>
+          <label class="switch">
+            Auto
+            <input id="autoTime" type="checkbox" checked>
+          </label>
+          <input id="manualTime" type="time" step="1">
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Refresh</h2>
+            <output id="refreshOut">1 min</output>
+          </div>
+          <label>
+            Interval
+            <input id="refreshInterval" type="range" min="1" max="10" step="1" value="1">
+            <span>min</span>
+          </label>
+          <label>
+            Flash
+            <input id="flashDuration" type="range" min="450" max="2200" step="50" value="1200">
+            <span>ms</span>
+          </label>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Paper</h2>
+            <output id="ghostOut">18%</output>
+          </div>
+          <label>
+            Ghost
+            <input id="ghostAmount" type="range" min="0" max="45" step="1" value="18">
+            <span>%</span>
+          </label>
+          <label class="switch">
+            Grain
+            <input id="paperGrain" type="checkbox" checked>
+          </label>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const WIDTH = 400;
+      const HEIGHT = 300;
+
+      const canvas = document.getElementById("display");
+      const ctx = canvas.getContext("2d");
+
+      const controls = {
+        shownTime: document.getElementById("shownTime"),
+        refreshNow: document.getElementById("refreshNow"),
+        flashNow: document.getElementById("flashNow"),
+        autoTime: document.getElementById("autoTime"),
+        manualTime: document.getElementById("manualTime"),
+        refreshInterval: document.getElementById("refreshInterval"),
+        refreshOut: document.getElementById("refreshOut"),
+        flashDuration: document.getElementById("flashDuration"),
+        ghostAmount: document.getElementById("ghostAmount"),
+        ghostOut: document.getElementById("ghostOut"),
+        paperGrain: document.getElementById("paperGrain"),
+      };
+
+      let displayedTime = null;
+      let ghostTime = null;
+      let lastRefreshAt = 0;
+      let flashStartedAt = 0;
+      let flashDuration = Number(controls.flashDuration.value);
+
+      function pad2(value) {
+        return String(value).padStart(2, "0");
+      }
+
+      function timeFromDate(date) {
+        return {
+          hour: date.getHours(),
+          minute: date.getMinutes(),
+          second: date.getSeconds(),
+        };
+      }
+
+      function timeFromInput() {
+        const [hourText, minuteText, secondText] = controls.manualTime.value.split(":");
+        return {
+          hour: Number(hourText || 0),
+          minute: Number(minuteText || 0),
+          second: Number(secondText || 0),
+        };
+      }
+
+      function timeText(time) {
+        if (!time) return "--:--:--";
+        return `${pad2(time.hour)}:${pad2(time.minute)}:${pad2(time.second)}`;
+      }
+
+      function currentTime() {
+        if (controls.autoTime.checked) {
+          return timeFromDate(new Date());
+        }
+        return timeFromInput();
+      }
+
+      function sameMinute(a, b) {
+        return a && b && a.hour === b.hour && a.minute === b.minute;
+      }
+
+      function sameSecond(a, b) {
+        return sameMinute(a, b) && a.second === b.second;
+      }
+
+      function setManualTimeToNow() {
+        const now = new Date();
+        controls.manualTime.value = `${pad2(now.getHours())}:${pad2(now.getMinutes())}:${pad2(now.getSeconds())}`;
+      }
+
+      function drawPaper() {
+        ctx.fillStyle = "#f8f7f0";
+        ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+        const vignette = ctx.createRadialGradient(WIDTH / 2, HEIGHT / 2, 80, WIDTH / 2, HEIGHT / 2, 270);
+        vignette.addColorStop(0, "rgba(255,255,255,0)");
+        vignette.addColorStop(1, "rgba(80,70,45,0.08)");
+        ctx.fillStyle = vignette;
+        ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+        if (!controls.paperGrain.checked) return;
+
+        ctx.fillStyle = "rgba(20, 18, 14, 0.045)";
+        for (let i = 0; i < 1400; i++) {
+          const x = (i * 197 + 31) % WIDTH;
+          const y = (i * 131 + 47) % HEIGHT;
+          if (((i * 17) & 7) < 3) {
+            ctx.fillRect(x, y, 1, 1);
+          }
+        }
+      }
+
+      function drawClockTime(time, alpha, offsetX = 0, offsetY = 0) {
+        if (!time) return;
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = "#101010";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.font = `700 186px "Caveat", cursive`;
+        ctx.fillText(`${pad2(time.hour)}:${pad2(time.minute)}`, WIDTH / 2 + offsetX, 132 + offsetY);
+        ctx.font = `700 78px "Caveat", cursive`;
+        ctx.fillText(pad2(time.second), WIDTH / 2 + offsetX, 248 + offsetY);
+        ctx.restore();
+      }
+
+      function drawFlash(now) {
+        const age = now - flashStartedAt;
+        if (age < 0 || age > flashDuration) return false;
+
+        const phase = age / flashDuration;
+        if (phase < 0.28) {
+          ctx.fillStyle = "#101010";
+          ctx.fillRect(0, 0, WIDTH, HEIGHT);
+        } else if (phase < 0.52) {
+          ctx.fillStyle = "#f8f7f0";
+          ctx.fillRect(0, 0, WIDTH, HEIGHT);
+        } else if (phase < 0.74) {
+          const stripe = 8;
+          for (let y = 0; y < HEIGHT; y += stripe) {
+            ctx.fillStyle = (Math.floor(y / stripe) % 2 === 0) ? "#f8f7f0" : "#1a1a1a";
+            ctx.fillRect(0, y, WIDTH, stripe);
+          }
+        }
+        return true;
+      }
+
+      function refresh(forceFlash = false) {
+        const next = currentTime();
+        if (!sameSecond(next, displayedTime)) {
+          ghostTime = displayedTime;
+        }
+        displayedTime = next;
+        lastRefreshAt = performance.now();
+        if (forceFlash) {
+          flashStartedAt = lastRefreshAt;
+        }
+      }
+
+      function maybeAutoRefresh(now) {
+        const intervalMs = Number(controls.refreshInterval.value) * 60 * 1000;
+        const next = currentTime();
+        const secondChanged = !sameSecond(next, displayedTime);
+        const minuteChanged = !sameMinute(next, displayedTime);
+        const intervalElapsed = now - lastRefreshAt >= intervalMs;
+        if (!secondChanged) return;
+
+        if (minuteChanged || intervalElapsed) {
+          ghostTime = displayedTime;
+          lastRefreshAt = now;
+        }
+        displayedTime = next;
+      }
+
+      function render(now = performance.now()) {
+        maybeAutoRefresh(now);
+
+        drawPaper();
+        if (!drawFlash(now)) {
+          const ghost = Number(controls.ghostAmount.value) / 100;
+          if (ghostTime && ghost > 0) {
+            drawClockTime(ghostTime, ghost, 1, 1);
+          }
+          drawClockTime(displayedTime, 1);
+        }
+
+        controls.shownTime.textContent = timeText(displayedTime);
+        requestAnimationFrame(render);
+      }
+
+      function updateOutputs() {
+        controls.refreshOut.textContent = `${controls.refreshInterval.value} min`;
+        controls.ghostOut.textContent = `${controls.ghostAmount.value}%`;
+        flashDuration = Number(controls.flashDuration.value);
+      }
+
+      controls.refreshNow.addEventListener("click", () => refresh(false));
+      controls.flashNow.addEventListener("click", () => refresh(true));
+      controls.autoTime.addEventListener("change", () => refresh(true));
+      controls.manualTime.addEventListener("change", () => refresh(true));
+      controls.refreshInterval.addEventListener("input", updateOutputs);
+      controls.flashDuration.addEventListener("input", updateOutputs);
+      controls.ghostAmount.addEventListener("input", updateOutputs);
+
+      setManualTimeToNow();
+      updateOutputs();
+      displayedTime = currentTime();
+      document.fonts.ready.then(() => refresh(true));
+      render();
+    </script>
+  </body>
+</html>

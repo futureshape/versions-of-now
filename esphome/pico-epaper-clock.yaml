@@ -1,0 +1,181 @@
+substitutions:
+  name: pico-epaper-clock
+  friendly_name: "Pico ePaper Clock"
+  # Waveshare Pico-ePaper-4.2 pin table for a Raspberry Pi Pico/Pico W:
+  #   DIN  -> GP11 / SPI MOSI
+  #   CLK  -> GP10 / SPI SCK
+  #   CS   -> GP9
+  #   DC   -> GP8
+  #   RST  -> GP12
+  #   BUSY -> GP13
+  spi_clk_pin: GPIO10
+  spi_mosi_pin: GPIO11
+  display_cs_pin: GPIO9
+  display_dc_pin: GPIO8
+  display_reset_pin: GPIO12
+  display_busy_pin: GPIO13
+
+packages:
+  # Pico W keeps shared Wi-Fi, OTA, and SNTP, but skips web_server to avoid
+  # pulling ESPAsyncWebServer into the RP2040/Arduino build.
+  network: !include shared/network-no-web.yaml
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+  on_boot:
+    priority: -100
+    then:
+      - component.update: epaper_display
+
+external_components:
+  - source:
+      type: local
+      path: components
+    components:
+      - pico_epaper_4in2_v2
+
+rp2040:
+  board: rpipicow
+
+logger:
+
+spi:
+  clk_pin: ${spi_clk_pin}
+  mosi_pin: ${spi_mosi_pin}
+
+globals:
+  # The display is refreshed by the interval below, not by the display
+  # component's polling timer. Seconds use partial refresh; minute changes
+  # request a full refresh to keep the panel clean.
+  - id: last_rendered_second_key
+    type: int
+    restore_value: false
+    initial_value: "-1"
+  - id: last_full_refresh_minute_key
+    type: int
+    restore_value: false
+    initial_value: "-1"
+  - id: last_diagnostic_refresh_ms
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+
+interval:
+  - interval: 1s
+    then:
+      - if:
+          condition:
+            lambda: |-
+              auto now = id(ntp_time).now();
+              if (!now.is_valid()) {
+                uint32_t elapsed = millis() - id(last_diagnostic_refresh_ms);
+                if (elapsed < 60000) return false;
+                id(last_diagnostic_refresh_ms) = millis();
+                id(epaper_display).set_full_refresh_next();
+                return true;
+              }
+
+              int minute_key = now.day_of_year * 1440 + now.hour * 60 + now.minute;
+              int second_key = minute_key * 60 + now.second;
+              if (second_key == id(last_rendered_second_key)) return false;
+
+              id(last_rendered_second_key) = second_key;
+              if (minute_key != id(last_full_refresh_minute_key)) {
+                id(last_full_refresh_minute_key) = minute_key;
+                id(epaper_display).set_full_refresh_next();
+              }
+              return true;
+          then:
+            - component.update: epaper_display
+
+button:
+  - platform: template
+    name: "Refresh Display"
+    on_press:
+      - lambda: |-
+          auto now = id(ntp_time).now();
+          if (now.is_valid()) {
+            int minute_key = now.day_of_year * 1440 + now.hour * 60 + now.minute;
+            id(last_full_refresh_minute_key) = minute_key;
+            id(last_rendered_second_key) = minute_key * 60 + now.second;
+          }
+          id(epaper_display).set_full_refresh_next();
+      - component.update: epaper_display
+
+font:
+  - file:
+      type: gfonts
+      family: Caveat
+      weight: 700
+    id: caveat_time_font
+    size: 186
+    bpp: 1
+    glyphs:
+      - "0123456789:"
+
+  - file:
+      type: gfonts
+      family: Caveat
+      weight: 700
+    id: caveat_seconds_font
+    size: 78
+    bpp: 1
+    glyphs:
+      - "0123456789"
+
+  # Public-domain 5x7 bitmap font used only for compact startup diagnostics.
+  - file: "fonts/5x7.bdf"
+    id: diagnostic_font
+    glyphs:
+      - " WIFCONEGTKYSMP0123456789."
+
+display:
+  - platform: pico_epaper_4in2_v2
+    id: epaper_display
+    cs_pin: ${display_cs_pin}
+    dc_pin: ${display_dc_pin}
+    reset_pin: ${display_reset_pin}
+    busy_pin: ${display_busy_pin}
+    partial_refresh: true
+    # Fixed seconds window. X/width must stay byte-aligned for the e-paper RAM.
+    partial_window:
+      x: 96
+      y: 180
+      width: 208
+      height: 120
+    update_interval: never
+    lambda: |-
+      static const int WIDTH = 400;
+      static const int HEIGHT = 300;
+      static const int CENTER_X = WIDTH / 2;
+
+      it.fill(COLOR_OFF);
+
+      if (!esphome::wifi::global_wifi_component->is_connected()) {
+        it.print(CENTER_X, 132, id(diagnostic_font), COLOR_ON, TextAlign::TOP_CENTER, "WIFI");
+        it.print(CENTER_X, 145, id(diagnostic_font), COLOR_ON, TextAlign::TOP_CENTER, "CONNECTING");
+        return;
+      }
+
+      auto now = id(ntp_time).now();
+      if (!now.is_valid()) {
+        auto addresses = esphome::wifi::global_wifi_component->wifi_sta_ip_addresses();
+        char ip_text[esphome::network::IP_ADDRESS_BUFFER_SIZE] = "NO IP";
+        if (addresses[0].is_set()) {
+          addresses[0].str_to(ip_text);
+        }
+
+        it.print(CENTER_X, 119, id(diagnostic_font), COLOR_ON, TextAlign::TOP_CENTER, "WIFI OK");
+        it.print(CENTER_X, 132, id(diagnostic_font), COLOR_ON, TextAlign::TOP_CENTER, ip_text);
+        it.print(CENTER_X, 145, id(diagnostic_font), COLOR_ON, TextAlign::TOP_CENTER, "SYNCING TIME");
+        return;
+      }
+
+      char time_text[6];
+      snprintf(time_text, sizeof(time_text), "%02d:%02d", now.hour, now.minute);
+      it.print(CENTER_X, 132, id(caveat_time_font), COLOR_ON, TextAlign::CENTER, time_text);
+
+      char second_text[3];
+      snprintf(second_text, sizeof(second_text), "%02d", now.second);
+      it.print(CENTER_X, 248, id(caveat_seconds_font), COLOR_ON, TextAlign::CENTER, second_text);
