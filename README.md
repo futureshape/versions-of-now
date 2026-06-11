@@ -50,6 +50,18 @@ The display renders a black-and-white BBC-style mechanical clock ident for
 EMF26 on PAL composite video. See `docs/CRT_BBC_CLOCK.md` for hardware and
 library notes.
 
+### 256x64 OLED Pinball Clock Prototype
+
+- Simulator: `simulator/256x64-oled-pinball-clock.html`
+- ESPHome config: not yet implemented
+- Display platform: 256x64 OLED framebuffer prototype; controller not assumed
+
+The simulator treats the time as a moving 1-bit bitmap body inside a 256x64
+OLED framebuffer. The time bounces against the screen edges while floating
+objects stream through the scene, get knocked off-screen, and respawn. Short
+on/off pixel trails erode into sparse stardust so crisp OLED text does not sit
+in one place.
+
 ### PCD8544 Swatch Internet Time Clock
 
 - ESPHome config: `esphome/nokia-beats-clock.yaml`

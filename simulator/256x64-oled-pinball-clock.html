@@ -1,0 +1,1056 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>256x64 OLED Pinball Clock Simulator</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --page: #0b0b0a;
+        --stage: #050606;
+        --panel: #191a17;
+        --panel-2: #25251f;
+        --line: #38382f;
+        --text: #f4f1e8;
+        --muted: #a4a093;
+        --accent: #4ac7a4;
+        --accent-2: #ffb14a;
+        --danger: #f06b57;
+        --focus: #f3d66a;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--page);
+        color: var(--text);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+
+      .app {
+        min-height: 100vh;
+        display: grid;
+        grid-template-rows: minmax(0, 1fr) auto;
+      }
+
+      .stage {
+        display: grid;
+        place-items: center;
+        min-height: min(74vh, 820px);
+        padding: clamp(10px, 3vw, 34px);
+        background: var(--stage);
+      }
+
+      .display-shell {
+        width: min(100%, 1220px);
+        padding: clamp(8px, 1.5vw, 16px);
+        border: 1px solid #30342d;
+        border-radius: 8px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 24%),
+          #050706;
+        box-shadow:
+          inset 0 0 34px rgba(0, 0, 0, 0.86),
+          0 26px 80px rgba(0, 0, 0, 0.42);
+      }
+
+      .display-window {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid #15221d;
+        border-radius: 5px;
+        background: #000;
+      }
+
+      .display-window::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+          inset 0 0 28px rgba(74, 199, 164, 0.08);
+      }
+
+      canvas {
+        display: block;
+        width: 100%;
+        aspect-ratio: 4 / 1;
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+        background: #000;
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(210px, 1fr));
+        gap: 14px;
+        padding: 16px;
+        border-top: 1px solid var(--line);
+        background: var(--page);
+      }
+
+      .panel {
+        display: grid;
+        align-content: start;
+        gap: 14px;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+      }
+
+      .panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 1.05rem;
+        line-height: 1.1;
+      }
+
+      h2 {
+        font-size: 0.95rem;
+      }
+
+      p,
+      label,
+      output {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .readout {
+        color: var(--text);
+        font-size: 1.24rem;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .button-row,
+      .time-set {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      button {
+        min-height: 36px;
+        border: 0;
+        border-radius: 6px;
+        padding: 8px 12px;
+        background: var(--accent);
+        color: #03110d;
+        cursor: pointer;
+        font-weight: 700;
+      }
+
+      button.secondary {
+        background: var(--panel-2);
+        color: var(--text);
+      }
+
+      button.warning {
+        background: var(--accent-2);
+        color: #170d02;
+      }
+
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 2px;
+      }
+
+      label {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .switch {
+        grid-template-columns: 1fr auto;
+      }
+
+      input[type="range"] {
+        width: 100%;
+        accent-color: var(--accent);
+      }
+
+      input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        accent-color: var(--accent);
+      }
+
+      input[type="time"],
+      select {
+        width: 100%;
+        min-height: 36px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 7px 9px;
+        background: var(--panel-2);
+        color: var(--text);
+      }
+
+      select {
+        grid-column: span 2;
+      }
+
+      @media (max-width: 980px) {
+        .controls {
+          grid-template-columns: repeat(2, minmax(210px, 1fr));
+        }
+      }
+
+      @media (max-width: 640px) {
+        .stage {
+          min-height: 46vh;
+          padding: 10px;
+        }
+
+        .controls {
+          grid-template-columns: 1fr;
+          padding: 12px;
+        }
+
+        label,
+        select {
+          grid-template-columns: 1fr;
+          grid-column: auto;
+        }
+
+        .button-row,
+        .time-set {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <section class="stage" aria-label="256 by 64 OLED pinball clock simulation">
+        <div class="display-shell">
+          <div class="display-window">
+            <canvas id="display" width="256" height="64" role="img" aria-label="OLED clock simulation"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <section class="controls" aria-label="Clock controls">
+        <section class="panel" aria-labelledby="status-title">
+          <div class="panel-head">
+            <div>
+              <h1 id="status-title">256x64 OLED Pinball</h1>
+              <p id="status">Live clock drifting through the framebuffer</p>
+            </div>
+            <div id="readout" class="readout">--:--:--</div>
+          </div>
+          <label class="switch">
+            Live clock
+            <input id="live-clock" type="checkbox" checked>
+          </label>
+        </section>
+
+        <section class="panel" aria-labelledby="time-title">
+          <div class="panel-head">
+            <h2 id="time-title">Time</h2>
+            <button id="sync-now" type="button">Sync</button>
+          </div>
+          <div class="time-set">
+            <input id="manual-time" type="time" step="1" value="12:00:00" aria-label="Manual time">
+            <button id="set-time" type="button" class="secondary">Set</button>
+          </div>
+          <div class="button-row">
+            <button id="step-second" type="button" class="secondary">Second</button>
+            <button id="step-minute" type="button" class="secondary">Minute</button>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="motion-title">
+          <div class="panel-head">
+            <h2 id="motion-title">Motion</h2>
+            <button id="kick" type="button" class="warning">Kick</button>
+          </div>
+          <label>
+            Speed
+            <input id="speed" type="range" min="45" max="180" step="5" value="95">
+            <output id="speed-label">95%</output>
+          </label>
+          <label>
+            Drift
+            <input id="drift" type="range" min="0" max="100" step="5" value="40">
+            <output id="drift-label">40%</output>
+          </label>
+        </section>
+
+        <section class="panel" aria-labelledby="scene-title">
+          <div class="panel-head">
+            <h2 id="scene-title">Scene</h2>
+            <button id="burst" type="button">Burst</button>
+          </div>
+          <label>
+            Trail
+            <input id="trail" type="range" min="6" max="48" step="2" value="24">
+            <output id="trail-label">24f</output>
+          </label>
+          <label>
+            Objects
+            <input id="objects" type="range" min="0" max="8" step="1" value="5">
+            <output id="objects-label">5</output>
+          </label>
+        </section>
+      </section>
+    </main>
+
+    <script>
+      const WIDTH = 256;
+      const HEIGHT = 64;
+      const TEXT_SCALE = 4;
+      const TEXT_GAP = 1;
+      const MAX_PARTICLES = 120;
+      const EDGE_PADDING = 2;
+      const EDGE_BOUNCE_MIN = 24;
+      const EDGE_JOLT = 9;
+      const OBJECT_RESPAWN_MARGIN = 18;
+      const OBJECT_SPAWN_PAD = 10;
+      const DUST_EROSION_CHANCE = 0.26;
+      const OLED_ON = { r: 226, g: 255, b: 246 };
+      const GLYPHS = createFont({
+        "0": `
+          .###.
+          #...#
+          #..##
+          #.#.#
+          ##..#
+          #...#
+          .###.
+        `,
+        "1": `
+          ..#..
+          .##..
+          #.#..
+          ..#..
+          ..#..
+          ..#..
+          #####
+        `,
+        "2": `
+          .###.
+          #...#
+          ....#
+          ...#.
+          ..#..
+          .#...
+          #####
+        `,
+        "3": `
+          ####.
+          ....#
+          ....#
+          .###.
+          ....#
+          ....#
+          ####.
+        `,
+        "4": `
+          ...#.
+          ..##.
+          .#.#.
+          #..#.
+          #####
+          ...#.
+          ...#.
+        `,
+        "5": `
+          #####
+          #....
+          #....
+          ####.
+          ....#
+          #...#
+          .###.
+        `,
+        "6": `
+          .###.
+          #...#
+          #....
+          ####.
+          #...#
+          #...#
+          .###.
+        `,
+        "7": `
+          #####
+          ....#
+          ...#.
+          ..#..
+          .#...
+          .#...
+          .#...
+        `,
+        "8": `
+          .###.
+          #...#
+          #...#
+          .###.
+          #...#
+          #...#
+          .###.
+        `,
+        "9": `
+          .###.
+          #...#
+          #...#
+          .####
+          ....#
+          #...#
+          .###.
+        `,
+        ":": `
+          .
+          #
+          #
+          .
+          #
+          #
+          .
+        `
+      });
+
+      const elements = {
+        canvas: document.querySelector("#display"),
+        readout: document.querySelector("#readout"),
+        status: document.querySelector("#status"),
+        liveClock: document.querySelector("#live-clock"),
+        manualTime: document.querySelector("#manual-time"),
+        syncNow: document.querySelector("#sync-now"),
+        setTime: document.querySelector("#set-time"),
+        stepSecond: document.querySelector("#step-second"),
+        stepMinute: document.querySelector("#step-minute"),
+        kick: document.querySelector("#kick"),
+        burst: document.querySelector("#burst"),
+        speed: document.querySelector("#speed"),
+        speedLabel: document.querySelector("#speed-label"),
+        drift: document.querySelector("#drift"),
+        driftLabel: document.querySelector("#drift-label"),
+        trail: document.querySelector("#trail"),
+        trailLabel: document.querySelector("#trail-label"),
+        objects: document.querySelector("#objects"),
+        objectsLabel: document.querySelector("#objects-label")
+      };
+
+      const context = elements.canvas.getContext("2d", { alpha: false });
+      context.imageSmoothingEnabled = false;
+
+      const state = {
+        trail: new Uint8Array(WIDTH * HEIGHT),
+        imageData: context.createImageData(WIDTH, HEIGHT),
+        manualDate: todayAt("12:00:00"),
+        stamp: "",
+        glyphPixels: [],
+        glyphWidth: 0,
+        glyphHeight: 0,
+        clock: {
+          x: 22,
+          y: 15,
+          vx: 22,
+          vy: 13
+        },
+        bumpers: [],
+        particles: [],
+        lastFrameAt: performance.now(),
+        lastStatusAt: 0,
+        collisionCount: 0,
+        edgeHitCount: 0,
+        frame: 0,
+        objectSeed: 1
+      };
+
+      updateLabels();
+      updateTimePixels(formatTime(new Date()));
+      resetMotion();
+      setupBumpers(Number(elements.objects.value));
+      wireControls();
+      requestAnimationFrame(renderFrame);
+
+      function wireControls() {
+        elements.liveClock.addEventListener("change", () => {
+          if (elements.liveClock.checked) {
+            setStatus("Live clock drifting through the framebuffer");
+            return;
+          }
+
+          state.manualDate = currentDisplayDate();
+          elements.manualTime.value = formatTime(state.manualDate);
+          setStatus("Manual time armed");
+        });
+
+        elements.syncNow.addEventListener("click", () => {
+          elements.liveClock.checked = true;
+          updateTimePixels(formatTime(new Date()));
+          setStatus("Synced to local time");
+        });
+
+        elements.setTime.addEventListener("click", () => {
+          elements.liveClock.checked = false;
+          state.manualDate = todayAt(elements.manualTime.value || "12:00:00");
+          updateTimePixels(formatTime(state.manualDate));
+          setStatus("Manual time set");
+        });
+
+        elements.stepSecond.addEventListener("click", () => {
+          stepManualTime(1);
+          impulseClock(11, 0.4);
+          setStatus("Manual second stepped");
+        });
+
+        elements.stepMinute.addEventListener("click", () => {
+          stepManualTime(60);
+          impulseClock(17, 0.7);
+          spawnBurst(clockCenterX(), clockCenterY(), 30);
+          setStatus("Manual minute stepped");
+        });
+
+        elements.kick.addEventListener("click", () => {
+          impulseClock(24, 1);
+          spawnBurst(clockCenterX(), clockCenterY(), 18);
+          setStatus("Clock kicked");
+        });
+
+        elements.burst.addEventListener("click", () => {
+          spawnBurst(clockCenterX(), clockCenterY(), 44);
+          setStatus("Pixel burst triggered");
+        });
+
+        elements.speed.addEventListener("input", updateLabels);
+        elements.drift.addEventListener("input", updateLabels);
+        elements.trail.addEventListener("input", updateLabels);
+        elements.objects.addEventListener("input", () => {
+          updateLabels();
+          setupBumpers(Number(elements.objects.value));
+          setStatus("Object stream reset");
+        });
+      }
+
+      function renderFrame(now) {
+        const dt = Math.min(0.05, Math.max(0.001, (now - state.lastFrameAt) / 1000));
+        state.lastFrameAt = now;
+
+        const date = currentDisplayDate();
+        const stamp = formatTime(date);
+        if (stamp !== state.stamp) {
+          updateTimePixels(stamp);
+        }
+
+        updatePhysics(dt, now / 1000);
+        fadeTrail();
+        drawBumpersToTrail();
+        drawClockToTrail();
+        drawParticlesToTrail(dt);
+        renderTrail();
+        updateReadout(stamp);
+
+        requestAnimationFrame(renderFrame);
+      }
+
+      function updatePhysics(dt, elapsedSeconds) {
+        const speedScale = Number(elements.speed.value) / 100;
+        const driftScale = Number(elements.drift.value) / 100;
+        const objectTarget = Number(elements.objects.value);
+        const clock = state.clock;
+        const driftX = Math.sin(elapsedSeconds * 0.73) + Math.sin(elapsedSeconds * 1.31) * 0.45;
+        const driftY = Math.cos(elapsedSeconds * 0.91) + Math.sin(elapsedSeconds * 1.77) * 0.38;
+
+        clock.vx += driftX * driftScale * dt * 3.8;
+        clock.vy += driftY * driftScale * dt * 3.2;
+        limitVelocity(clock, 12, 62);
+
+        clock.x += clock.vx * speedScale * dt;
+        clock.y += clock.vy * speedScale * dt;
+        bounceClockOnEdges();
+
+        for (let index = state.bumpers.length - 1; index >= 0; index -= 1) {
+          const bumper = state.bumpers[index];
+          const float = 0.45 + index * 0.17;
+          bumper.vx += Math.sin(elapsedSeconds * float + bumper.phase) * dt * 0.9;
+          bumper.vy += Math.cos(elapsedSeconds * (float + 0.21) + bumper.phase) * dt * 0.8;
+          limitVelocity(bumper, 3, 28);
+          bumper.x += bumper.vx * speedScale * dt;
+          bumper.y += bumper.vy * speedScale * dt;
+          collideClockWithBumper(bumper);
+
+          if (objectIsOffscreen(bumper)) {
+            state.bumpers.splice(index, 1);
+          }
+        }
+
+        while (state.bumpers.length < objectTarget) {
+          state.bumpers.push(createBumper(false));
+        }
+
+        bounceClockOnEdges();
+      }
+
+      function bounceClockOnEdges() {
+        const clock = state.clock;
+        const maxX = WIDTH - state.glyphWidth - EDGE_PADDING;
+        const maxY = HEIGHT - state.glyphHeight - EDGE_PADDING;
+        let hitX = 0;
+        let hitY = 0;
+
+        if (clock.x < EDGE_PADDING) {
+          clock.x = EDGE_PADDING;
+          clock.vx = Math.max(Math.abs(clock.vx) * 0.96, EDGE_BOUNCE_MIN);
+          clock.vy += edgeDeflection();
+          hitX = -1;
+        } else if (clock.x > maxX) {
+          clock.x = maxX;
+          clock.vx = -Math.max(Math.abs(clock.vx) * 0.96, EDGE_BOUNCE_MIN);
+          clock.vy += edgeDeflection();
+          hitX = 1;
+        }
+
+        if (clock.y < EDGE_PADDING) {
+          clock.y = EDGE_PADDING;
+          clock.vy = Math.max(Math.abs(clock.vy) * 0.96, EDGE_BOUNCE_MIN);
+          clock.vx += edgeDeflection();
+          hitY = -1;
+        } else if (clock.y > maxY) {
+          clock.y = maxY;
+          clock.vy = -Math.max(Math.abs(clock.vy) * 0.96, EDGE_BOUNCE_MIN);
+          clock.vx += edgeDeflection();
+          hitY = 1;
+        }
+
+        if (hitX || hitY) {
+          limitVelocity(clock, 15, 70);
+          const contactX = hitX ? (hitX < 0 ? 0 : WIDTH - 1) : clockCenterX();
+          const contactY = hitY ? (hitY < 0 ? 0 : HEIGHT - 1) : clockCenterY();
+          spawnBurst(contactX, contactY, 8);
+        }
+      }
+
+      function edgeDeflection() {
+        state.edgeHitCount += 1;
+        return (seeded(state.edgeHitCount * 31.7 + performance.now() * 0.01) - 0.5) * EDGE_JOLT * 2;
+      }
+
+      function collideClockWithBumper(bumper) {
+        const closestX = clamp(bumper.x, state.clock.x, state.clock.x + state.glyphWidth);
+        const closestY = clamp(bumper.y, state.clock.y, state.clock.y + state.glyphHeight);
+        let dx = bumper.x - closestX;
+        let dy = bumper.y - closestY;
+        let distance = Math.hypot(dx, dy);
+        const minDistance = bumper.radius + 1.5;
+
+        if (distance >= minDistance) {
+          return;
+        }
+
+        if (distance < 0.001) {
+          dx = bumper.x - clockCenterX();
+          dy = bumper.y - clockCenterY();
+          distance = Math.hypot(dx, dy) || 1;
+        }
+
+        const nx = dx / distance;
+        const ny = dy / distance;
+        const clock = state.clock;
+        const approach = clock.vx * nx + clock.vy * ny;
+        const push = approach > 0 ? approach * 1.75 + 4.2 : 4.2;
+
+        clock.vx -= push * nx;
+        clock.vy -= push * ny;
+        bumper.vx += nx * (9 + Math.abs(approach) * 0.16);
+        bumper.vy += ny * (9 + Math.abs(approach) * 0.16);
+        clock.x -= nx * (minDistance - distance) * 0.8;
+        clock.y -= ny * (minDistance - distance) * 0.8;
+        state.collisionCount += 1;
+        setStatus("Collision " + state.collisionCount + ": time deflected");
+        spawnBurst(closestX, closestY, 16);
+      }
+
+      function fadeTrail() {
+        const trail = state.trail;
+        const freshTrail = trailLife() - 2;
+        state.frame += 1;
+
+        for (let index = 0; index < trail.length; index += 1) {
+          if (trail[index] > 0) {
+            trail[index] -= 1;
+            if (trail[index] > 0 && trail[index] < freshTrail && seeded(index * 0.013 + state.frame * 0.37) < DUST_EROSION_CHANCE) {
+              trail[index] = Math.max(0, trail[index] - 2 - Math.floor(seeded(index + state.frame * 1.7) * 4));
+            }
+          }
+        }
+      }
+
+      function drawClockToTrail() {
+        const x = Math.round(state.clock.x);
+        const y = Math.round(state.clock.y);
+        const life = trailLife();
+
+        for (const pixel of state.glyphPixels) {
+          setTrailPixel(x + pixel.x, y + pixel.y, life);
+        }
+      }
+
+      function drawBumpersToTrail() {
+        const life = Math.max(4, Math.round(trailLife() * 0.55));
+
+        state.bumpers.forEach((bumper) => {
+          const radius = bumper.radius;
+          const minX = Math.floor(bumper.x - radius - 1);
+          const maxX = Math.ceil(bumper.x + radius + 1);
+          const minY = Math.floor(bumper.y - radius - 1);
+          const maxY = Math.ceil(bumper.y + radius + 1);
+
+          for (let y = minY; y <= maxY; y += 1) {
+            for (let x = minX; x <= maxX; x += 1) {
+              const distance = Math.hypot(x - bumper.x, y - bumper.y);
+              if (Math.abs(distance - radius) < 0.75) {
+                setTrailPixel(x, y, life);
+              } else if (distance < 1.3) {
+                setTrailPixel(x, y, life);
+              }
+            }
+          }
+        });
+      }
+
+      function drawParticlesToTrail(dt) {
+        for (let index = state.particles.length - 1; index >= 0; index -= 1) {
+          const particle = state.particles[index];
+          particle.x += particle.vx * dt;
+          particle.y += particle.vy * dt;
+          particle.vx *= 0.992;
+          particle.vy *= 0.992;
+          particle.life -= dt;
+
+          if (particle.life <= 0 || particleIsOffscreen(particle)) {
+            state.particles.splice(index, 1);
+            continue;
+          }
+
+          const life = Math.max(1, Math.round(trailLife() * clamp01(particle.life / particle.maxLife)));
+          setTrailPixel(Math.round(particle.x), Math.round(particle.y), life);
+        }
+      }
+
+      function renderTrail() {
+        const data = state.imageData.data;
+        const trail = state.trail;
+
+        for (let index = 0, pixel = 0; index < trail.length; index += 1, pixel += 4) {
+          const on = trail[index] > 0;
+          data[pixel] = on ? OLED_ON.r : 0;
+          data[pixel + 1] = on ? OLED_ON.g : 0;
+          data[pixel + 2] = on ? OLED_ON.b : 0;
+          data[pixel + 3] = 255;
+        }
+
+        context.putImageData(state.imageData, 0, 0);
+      }
+
+      function stepManualTime(seconds) {
+        elements.liveClock.checked = false;
+        state.manualDate = addSeconds(currentDisplayDate(), seconds);
+        elements.manualTime.value = formatTime(state.manualDate);
+        updateTimePixels(formatTime(state.manualDate));
+      }
+
+      function updateTimePixels(stamp) {
+        const rendered = renderTextPixels(stamp);
+        state.stamp = stamp;
+        state.glyphPixels = rendered.pixels;
+        state.glyphWidth = rendered.width;
+        state.glyphHeight = rendered.height;
+        state.clock.x = clamp(state.clock.x, EDGE_PADDING, WIDTH - state.glyphWidth - EDGE_PADDING);
+        state.clock.y = clamp(state.clock.y, EDGE_PADDING, HEIGHT - state.glyphHeight - EDGE_PADDING);
+        elements.canvas.setAttribute("aria-label", "OLED clock simulation showing " + stamp);
+      }
+
+      function setupBumpers(count) {
+        state.bumpers = [];
+
+        for (let index = 0; index < count; index += 1) {
+          state.bumpers.push(createBumper(true));
+        }
+      }
+
+      function createBumper(inside) {
+        const seed = state.objectSeed;
+        const radius = 3 + (seed % 3);
+        state.objectSeed += 1;
+
+        if (inside) {
+          return {
+            x: 34 + seeded(seed * 2) * (WIDTH - 68),
+            y: 8 + seeded(seed * 3) * (HEIGHT - 16),
+            vx: -9 + seeded(seed * 5) * 18,
+            vy: -7 + seeded(seed * 7) * 14,
+            radius,
+            phase: seeded(seed * 11) * Math.PI * 2
+          };
+        }
+
+        const edge = Math.floor(seeded(seed * 13) * 4);
+        const alongX = OBJECT_SPAWN_PAD + seeded(seed * 17) * (WIDTH - OBJECT_SPAWN_PAD * 2);
+        const alongY = OBJECT_SPAWN_PAD + seeded(seed * 19) * (HEIGHT - OBJECT_SPAWN_PAD * 2);
+        const speed = 8 + seeded(seed * 23) * 14;
+        const wobble = -7 + seeded(seed * 29) * 14;
+        const bumper = {
+          x: alongX,
+          y: alongY,
+          vx: wobble,
+          vy: wobble,
+          radius,
+          phase: seeded(seed * 31) * Math.PI * 2
+        };
+
+        if (edge === 0) {
+          bumper.x = -radius - OBJECT_SPAWN_PAD;
+          bumper.vx = speed;
+          bumper.vy = wobble;
+        } else if (edge === 1) {
+          bumper.x = WIDTH + radius + OBJECT_SPAWN_PAD;
+          bumper.vx = -speed;
+          bumper.vy = wobble;
+        } else if (edge === 2) {
+          bumper.y = -radius - OBJECT_SPAWN_PAD;
+          bumper.vx = wobble;
+          bumper.vy = speed;
+        } else {
+          bumper.y = HEIGHT + radius + OBJECT_SPAWN_PAD;
+          bumper.vx = wobble;
+          bumper.vy = -speed;
+        }
+
+        return bumper;
+      }
+
+      function objectIsOffscreen(bumper) {
+        return (
+          bumper.x + bumper.radius < -OBJECT_RESPAWN_MARGIN ||
+          bumper.x - bumper.radius > WIDTH + OBJECT_RESPAWN_MARGIN ||
+          bumper.y + bumper.radius < -OBJECT_RESPAWN_MARGIN ||
+          bumper.y - bumper.radius > HEIGHT + OBJECT_RESPAWN_MARGIN
+        );
+      }
+
+      function particleIsOffscreen(particle) {
+        return (
+          particle.x < -OBJECT_RESPAWN_MARGIN ||
+          particle.x > WIDTH + OBJECT_RESPAWN_MARGIN ||
+          particle.y < -OBJECT_RESPAWN_MARGIN ||
+          particle.y > HEIGHT + OBJECT_RESPAWN_MARGIN
+        );
+      }
+
+      function resetMotion() {
+        state.clock.x = 20;
+        state.clock.y = 14;
+        state.clock.vx = 22;
+        state.clock.vy = 13;
+      }
+
+      function impulseClock(strength, spin) {
+        const angle = Math.atan2(state.clock.vy, state.clock.vx) + Math.PI * (0.55 + seeded(performance.now() * 0.01) * spin);
+        state.clock.vx += Math.cos(angle) * strength;
+        state.clock.vy += Math.sin(angle) * strength;
+        limitVelocity(state.clock, 15, 70);
+      }
+
+      function spawnBurst(x, y, count) {
+        for (let index = 0; index < count; index += 1) {
+          if (state.particles.length >= MAX_PARTICLES) {
+            state.particles.shift();
+          }
+
+          const angle = seeded(performance.now() + index * 19.7) * Math.PI * 2;
+          const speed = 18 + seeded(index * 31.1 + x + y) * 44;
+          const life = 0.28 + seeded(index * 9.3 + y) * 0.48;
+          state.particles.push({
+            x,
+            y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life,
+            maxLife: life
+          });
+        }
+      }
+
+      function updateLabels() {
+        elements.speedLabel.textContent = elements.speed.value + "%";
+        elements.driftLabel.textContent = elements.drift.value + "%";
+        elements.trailLabel.textContent = elements.trail.value + "f";
+        elements.objectsLabel.textContent = elements.objects.value;
+      }
+
+      function updateReadout(stamp) {
+        if (elements.readout.textContent !== stamp) {
+          elements.readout.textContent = stamp;
+        }
+      }
+
+      function setStatus(message) {
+        const now = performance.now();
+        if (message.startsWith("Collision") && now - state.lastStatusAt < 280) {
+          return;
+        }
+
+        state.lastStatusAt = now;
+        elements.status.textContent = message;
+      }
+
+      function renderTextPixels(text) {
+        const pixels = [];
+        let cursor = 0;
+        let height = 0;
+
+        for (const char of text) {
+          const glyph = GLYPHS[char];
+          if (!glyph) {
+            continue;
+          }
+
+          for (let row = 0; row < glyph.rows.length; row += 1) {
+            for (let col = 0; col < glyph.width; col += 1) {
+              if (!glyph.rows[row][col]) {
+                continue;
+              }
+
+              for (let y = 0; y < TEXT_SCALE; y += 1) {
+                for (let x = 0; x < TEXT_SCALE; x += 1) {
+                  pixels.push({
+                    x: (cursor + col) * TEXT_SCALE + x,
+                    y: row * TEXT_SCALE + y
+                  });
+                }
+              }
+            }
+          }
+
+          cursor += glyph.width + TEXT_GAP;
+          height = Math.max(height, glyph.rows.length * TEXT_SCALE);
+        }
+
+        return {
+          pixels,
+          width: Math.max(0, cursor * TEXT_SCALE - TEXT_GAP * TEXT_SCALE),
+          height
+        };
+      }
+
+      function createFont(definitions) {
+        return Object.fromEntries(
+          Object.entries(definitions).map(([char, art]) => {
+            const rows = art.trim().split("\n")
+              .map((line) => line.trim())
+              .filter(Boolean)
+              .map((line) => [...line].map((pixel) => pixel === "#"));
+
+            return [char, { rows, width: rows[0].length }];
+          })
+        );
+      }
+
+      function currentDisplayDate() {
+        return elements.liveClock.checked ? new Date() : new Date(state.manualDate);
+      }
+
+      function todayAt(value) {
+        const [hours = 0, minutes = 0, seconds = 0] = value.split(":").map(Number);
+        const date = new Date();
+        date.setHours(hours, minutes, seconds, 0);
+        return date;
+      }
+
+      function addSeconds(date, seconds) {
+        return new Date(date.getTime() + seconds * 1000);
+      }
+
+      function formatTime(date) {
+        return [date.getHours(), date.getMinutes(), date.getSeconds()]
+          .map((part) => String(part).padStart(2, "0"))
+          .join(":");
+      }
+
+      function setTrailPixel(x, y, value) {
+        if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) {
+          return;
+        }
+
+        const index = y * WIDTH + x;
+        if (value > state.trail[index]) {
+          state.trail[index] = value;
+        }
+      }
+
+      function trailLife() {
+        return Number(elements.trail.value);
+      }
+
+      function clockCenterX() {
+        return state.clock.x + state.glyphWidth / 2;
+      }
+
+      function clockCenterY() {
+        return state.clock.y + state.glyphHeight / 2;
+      }
+
+      function limitVelocity(body, min, max) {
+        const speed = Math.hypot(body.vx, body.vy);
+        if (speed < 0.001) {
+          body.vx = min;
+          body.vy = 0;
+          return;
+        }
+
+        if (speed < min) {
+          body.vx = body.vx / speed * min;
+          body.vy = body.vy / speed * min;
+        } else if (speed > max) {
+          body.vx = body.vx / speed * max;
+          body.vy = body.vy / speed * max;
+        }
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function clamp01(value) {
+        return clamp(value, 0, 1);
+      }
+
+      function seeded(value) {
+        const sine = Math.sin(value * 12.9898) * 43758.5453;
+        return sine - Math.floor(sine);
+      }
+    </script>
+  </body>
+</html>
