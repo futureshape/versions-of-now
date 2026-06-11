@@ -64,6 +64,10 @@ globals:
     type: uint32_t
     restore_value: false
     initial_value: "0"
+  - id: last_diagnostic_state
+    type: int
+    restore_value: false
+    initial_value: "-1"
 
 interval:
   - interval: 1s
@@ -73,13 +77,25 @@ interval:
             lambda: |-
               auto now = id(ntp_time).now();
               if (!now.is_valid()) {
+                int diagnostic_state = 0;
+                if (esphome::wifi::global_wifi_component->is_connected()) {
+                  diagnostic_state = 1;
+                  auto addresses = esphome::wifi::global_wifi_component->wifi_sta_ip_addresses();
+                  if (addresses[0].is_set()) {
+                    diagnostic_state = 2;
+                  }
+                }
+
                 uint32_t elapsed = millis() - id(last_diagnostic_refresh_ms);
-                if (elapsed < 60000) return false;
+                if (diagnostic_state == id(last_diagnostic_state) && elapsed < 60000) return false;
+
+                id(last_diagnostic_state) = diagnostic_state;
                 id(last_diagnostic_refresh_ms) = millis();
                 id(epaper_display).set_full_refresh_next();
                 return true;
               }
 
+              id(last_diagnostic_state) = 3;
               int minute_key = now.day_of_year * 1440 + now.hour * 60 + now.minute;
               int second_key = minute_key * 60 + now.second;
               if (second_key == id(last_rendered_second_key)) return false;
