@@ -6,7 +6,7 @@
     <title>Pico ePaper Clock Simulator</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@700&family=Caveat:wght@700&family=Indie+Flower&family=Pacifico&family=Permanent+Marker&display=swap" rel="stylesheet">
     <style>
       :root {
         color-scheme: light;
@@ -288,6 +288,9 @@
     <script>
       const WIDTH = 400;
       const HEIGHT = 300;
+      const CENTER_Y = HEIGHT / 2;
+      const TIME_BASE_Y = 118;
+      const SECONDS_BASE_Y = 220;
 
       const canvas = document.getElementById("display");
       const ctx = canvas.getContext("2d");
@@ -308,9 +311,19 @@
 
       let displayedTime = null;
       let ghostTime = null;
+      let selectedFontIndex = 0;
+      let selectedFontMinuteKey = null;
       let lastRefreshAt = 0;
       let flashStartedAt = 0;
       let flashDuration = Number(controls.flashDuration.value);
+
+      const fontChoices = [
+        { family: "Caveat", timeSize: 166, secondsSize: 72 },
+        { family: "Pacifico", timeSize: 126, secondsSize: 68 },
+        { family: "Indie Flower", timeSize: 150, secondsSize: 72 },
+        { family: "Permanent Marker", timeSize: 128, secondsSize: 68 },
+        { family: "Amatic SC", timeSize: 190, secondsSize: 84 },
+      ];
 
       function pad2(value) {
         return String(value).padStart(2, "0");
@@ -353,6 +366,23 @@
         return sameMinute(a, b) && a.second === b.second;
       }
 
+      function minuteKey(time) {
+        return time ? time.hour * 60 + time.minute : null;
+      }
+
+      function chooseNextFont() {
+        let next = Math.floor(Math.random() * (fontChoices.length - 1));
+        if (next >= selectedFontIndex) next += 1;
+        selectedFontIndex = next;
+      }
+
+      function updateFontForTime(time) {
+        const nextMinuteKey = minuteKey(time);
+        if (nextMinuteKey === null || nextMinuteKey === selectedFontMinuteKey) return;
+        selectedFontMinuteKey = nextMinuteKey;
+        chooseNextFont();
+      }
+
       function setManualTimeToNow() {
         const now = new Date();
         controls.manualTime.value = `${pad2(now.getHours())}:${pad2(now.getMinutes())}:${pad2(now.getSeconds())}`;
@@ -382,16 +412,30 @@
 
       function drawClockTime(time, alpha, offsetX = 0, offsetY = 0) {
         if (!time) return;
+        const font = fontChoices[selectedFontIndex];
+        const timeText = `${pad2(time.hour)}:${pad2(time.minute)}`;
+        const secondText = pad2(time.second);
 
         ctx.save();
         ctx.globalAlpha = alpha;
         ctx.fillStyle = "#101010";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.font = `700 186px "Caveat", cursive`;
-        ctx.fillText(`${pad2(time.hour)}:${pad2(time.minute)}`, WIDTH / 2 + offsetX, 132 + offsetY);
-        ctx.font = `700 78px "Caveat", cursive`;
-        ctx.fillText(pad2(time.second), WIDTH / 2 + offsetX, 248 + offsetY);
+
+        ctx.font = `700 ${font.timeSize}px "${font.family}", cursive`;
+        const timeTop = TIME_BASE_Y - font.timeSize / 2;
+        const timeBottom = TIME_BASE_Y + font.timeSize / 2;
+        ctx.font = `700 ${font.secondsSize}px "${font.family}", cursive`;
+        const secondsTop = SECONDS_BASE_Y - font.secondsSize / 2;
+        const secondsBottom = SECONDS_BASE_Y + font.secondsSize / 2;
+        const blockTop = Math.min(timeTop, secondsTop);
+        const blockBottom = Math.max(timeBottom, secondsBottom);
+        const yCenterOffset = CENTER_Y - (blockTop + blockBottom) / 2;
+
+        ctx.font = `700 ${font.timeSize}px "${font.family}", cursive`;
+        ctx.fillText(timeText, WIDTH / 2 + offsetX, TIME_BASE_Y + yCenterOffset + offsetY);
+        ctx.font = `700 ${font.secondsSize}px "${font.family}", cursive`;
+        ctx.fillText(secondText, WIDTH / 2 + offsetX, SECONDS_BASE_Y + yCenterOffset + offsetY);
         ctx.restore();
       }
 
@@ -418,6 +462,7 @@
 
       function refresh(forceFlash = false) {
         const next = currentTime();
+        updateFontForTime(next);
         if (!sameSecond(next, displayedTime)) {
           ghostTime = displayedTime;
         }
@@ -439,6 +484,7 @@
         if (minuteChanged || intervalElapsed) {
           ghostTime = displayedTime;
           lastRefreshAt = now;
+          if (minuteChanged) updateFontForTime(next);
         }
         displayedTime = next;
       }
@@ -476,6 +522,7 @@
       setManualTimeToNow();
       updateOutputs();
       displayedTime = currentTime();
+      updateFontForTime(displayedTime);
       document.fonts.ready.then(() => refresh(true));
       render();
     </script>

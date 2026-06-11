@@ -75,10 +75,11 @@ firmware notes.
 - Network UI: intentionally not configured on this RP2040 clock
 - Home Assistant: intentionally not configured
 
-The display shows local time in Caveat from Google Fonts, with large `HH:MM`
-and smaller seconds. It uses the Waveshare Pico-ePaper-4.2 black/white 400x300
-panel, partial refreshes seconds, and full refreshes on minute changes. See
-`docs/PICO_EPAPER_CLOCK.md` for wiring, refresh behavior, and firmware notes.
+The display shows local time in rotating handwriting fonts from Google Fonts,
+with large `HH:MM` and smaller seconds. It uses the Waveshare
+Pico-ePaper-4.2 black/white 400x300 panel, partial refreshes seconds, and full
+refreshes on minute changes. See `docs/PICO_EPAPER_CLOCK.md` for wiring,
+refresh behavior, and firmware notes.
 
 ### PCD8544 Swatch Internet Time Clock
 

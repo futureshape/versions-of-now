@@ -56,6 +56,10 @@ globals:
     type: int
     restore_value: false
     initial_value: "-1"
+  - id: handwriting_font_index
+    type: uint8_t
+    restore_value: false
+    initial_value: "0"
   - id: last_diagnostic_refresh_ms
     type: uint32_t
     restore_value: false
@@ -83,6 +87,10 @@ interval:
               id(last_rendered_second_key) = second_key;
               if (minute_key != id(last_full_refresh_minute_key)) {
                 id(last_full_refresh_minute_key) = minute_key;
+                uint8_t current_font = id(handwriting_font_index);
+                uint8_t next_font = esphome::random_uint32() % 4;
+                if (next_font >= current_font) next_font++;
+                id(handwriting_font_index) = next_font;
                 id(epaper_display).set_full_refresh_next();
               }
               return true;
@@ -109,7 +117,7 @@ font:
       family: Caveat
       weight: 700
     id: caveat_time_font
-    size: 186
+    size: 166
     bpp: 1
     glyphs:
       - "0123456789:"
@@ -119,7 +127,87 @@ font:
       family: Caveat
       weight: 700
     id: caveat_seconds_font
-    size: 78
+    size: 72
+    bpp: 1
+    glyphs:
+      - "0123456789"
+
+  - file:
+      type: gfonts
+      family: Pacifico
+      weight: 400
+    id: pacifico_time_font
+    size: 126
+    bpp: 1
+    glyphs:
+      - "0123456789:"
+
+  - file:
+      type: gfonts
+      family: Pacifico
+      weight: 400
+    id: pacifico_seconds_font
+    size: 68
+    bpp: 1
+    glyphs:
+      - "0123456789"
+
+  - file:
+      type: gfonts
+      family: Indie Flower
+      weight: 400
+    id: indie_flower_time_font
+    size: 150
+    bpp: 1
+    glyphs:
+      - "0123456789:"
+
+  - file:
+      type: gfonts
+      family: Indie Flower
+      weight: 400
+    id: indie_flower_seconds_font
+    size: 72
+    bpp: 1
+    glyphs:
+      - "0123456789"
+
+  - file:
+      type: gfonts
+      family: Permanent Marker
+      weight: 400
+    id: permanent_marker_time_font
+    size: 128
+    bpp: 1
+    glyphs:
+      - "0123456789:"
+
+  - file:
+      type: gfonts
+      family: Permanent Marker
+      weight: 400
+    id: permanent_marker_seconds_font
+    size: 68
+    bpp: 1
+    glyphs:
+      - "0123456789"
+
+  - file:
+      type: gfonts
+      family: Amatic SC
+      weight: 700
+    id: amatic_sc_time_font
+    size: 190
+    bpp: 1
+    glyphs:
+      - "0123456789:"
+
+  - file:
+      type: gfonts
+      family: Amatic SC
+      weight: 700
+    id: amatic_sc_seconds_font
+    size: 84
     bpp: 1
     glyphs:
       - "0123456789"
@@ -141,14 +229,17 @@ display:
     # Fixed seconds window. X/width must stay byte-aligned for the e-paper RAM.
     partial_window:
       x: 96
-      y: 180
+      y: 150
       width: 208
-      height: 120
+      height: 140
     update_interval: never
     lambda: |-
       static const int WIDTH = 400;
       static const int HEIGHT = 300;
       static const int CENTER_X = WIDTH / 2;
+      static const int CENTER_Y = HEIGHT / 2;
+      static const int TIME_BASE_Y = 118;
+      static const int SECONDS_BASE_Y = 220;
 
       it.fill(COLOR_OFF);
 
@@ -174,8 +265,71 @@ display:
 
       char time_text[6];
       snprintf(time_text, sizeof(time_text), "%02d:%02d", now.hour, now.minute);
-      it.print(CENTER_X, 132, id(caveat_time_font), COLOR_ON, TextAlign::CENTER, time_text);
 
       char second_text[3];
       snprintf(second_text, sizeof(second_text), "%02d", now.second);
-      it.print(CENTER_X, 248, id(caveat_seconds_font), COLOR_ON, TextAlign::CENTER, second_text);
+
+      auto print_centered_fit = [&](int center_x, int y, esphome::display::BaseFont *font, const char *text) {
+        static const int MARGIN = 4;
+        int x1;
+        int y1;
+        int width;
+        int height;
+        it.get_text_bounds(center_x, y, text, font, TextAlign::CENTER, &x1, &y1, &width, &height);
+
+        int adjusted_x = center_x;
+        if (x1 < MARGIN) {
+          adjusted_x += MARGIN - x1;
+        } else if (x1 + width > WIDTH - MARGIN) {
+          adjusted_x -= x1 + width - (WIDTH - MARGIN);
+        }
+        it.print(adjusted_x, y, font, COLOR_ON, TextAlign::CENTER, text);
+      };
+
+      auto draw_time = [&](esphome::display::BaseFont *time_font, esphome::display::BaseFont *seconds_font) {
+        static const int VERTICAL_MARGIN = 4;
+        int time_x1;
+        int time_y1;
+        int time_width;
+        int time_height;
+        int seconds_x1;
+        int seconds_y1;
+        int seconds_width;
+        int seconds_height;
+        it.get_text_bounds(CENTER_X, TIME_BASE_Y, time_text, time_font, TextAlign::CENTER, &time_x1, &time_y1,
+                           &time_width, &time_height);
+        it.get_text_bounds(CENTER_X, SECONDS_BASE_Y, second_text, seconds_font, TextAlign::CENTER, &seconds_x1,
+                           &seconds_y1, &seconds_width, &seconds_height);
+
+        int block_top = time_y1 < seconds_y1 ? time_y1 : seconds_y1;
+        int time_bottom = time_y1 + time_height;
+        int seconds_bottom = seconds_y1 + seconds_height;
+        int block_bottom = time_bottom > seconds_bottom ? time_bottom : seconds_bottom;
+        int y_offset = CENTER_Y - ((block_top + block_bottom) / 2);
+        if (block_top + y_offset < VERTICAL_MARGIN) {
+          y_offset += VERTICAL_MARGIN - (block_top + y_offset);
+        } else if (block_bottom + y_offset > HEIGHT - VERTICAL_MARGIN) {
+          y_offset -= block_bottom + y_offset - (HEIGHT - VERTICAL_MARGIN);
+        }
+
+        print_centered_fit(CENTER_X, TIME_BASE_Y + y_offset, time_font, time_text);
+        print_centered_fit(CENTER_X, SECONDS_BASE_Y + y_offset, seconds_font, second_text);
+      };
+
+      switch (id(handwriting_font_index)) {
+        case 1:
+          draw_time(id(pacifico_time_font), id(pacifico_seconds_font));
+          break;
+        case 2:
+          draw_time(id(indie_flower_time_font), id(indie_flower_seconds_font));
+          break;
+        case 3:
+          draw_time(id(permanent_marker_time_font), id(permanent_marker_seconds_font));
+          break;
+        case 4:
+          draw_time(id(amatic_sc_time_font), id(amatic_sc_seconds_font));
+          break;
+        default:
+          draw_time(id(caveat_time_font), id(caveat_seconds_font));
+          break;
+      }

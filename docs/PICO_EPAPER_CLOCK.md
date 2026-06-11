@@ -33,8 +33,11 @@ working demo code.
 
 ## Behavior
 
-The clock renders local time in Caveat Bold from Google Fonts: large `HH:MM`
-near the center of the panel, with smaller seconds underneath.
+The clock renders local time in a randomly selected handwriting font from
+Google Fonts: large `HH:MM` with smaller seconds underneath, measured as one
+two-line block and centered vertically on the panel. The current set is Caveat,
+Pacifico, Indie Flower, Permanent Marker, and Amatic SC. Font selection changes
+on minute boundaries, when the display is already doing a full refresh.
 
 The custom display component has `update_interval: never`; an ESPHome interval
 checks the shared SNTP time once per second. Second changes use partial refresh;
@@ -67,9 +70,8 @@ It keeps Wi-Fi, OTA, and SNTP, but deliberately omits `web_server` so the RP2040
 Arduino build does not pull in `ESPAsyncWebServer` and its extra PlatformIO
 platform dependency checks.
 
-Future handwriting-font rotation should be added as a small set of alternate
-font definitions and an explicit selection strategy. For now, Caveat is the only
-font family.
+The font sizes are family-specific so wide faces such as Pacifico and Permanent
+Marker stay inside the 400 pixel panel while narrower faces can remain larger.
 
 ## Sources
 
