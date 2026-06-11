@@ -1,0 +1,659 @@
+substitutions:
+  name: oled-pinball-clock
+  friendly_name: "OLED Pinball Clock"
+  # ESP32-DevKitC V4 / classic ESP32 VSPI pins. SSD1322 DIN connects to MOSI.
+  spi_clk_pin: GPIO18
+  spi_mosi_pin: GPIO23
+  # Defaults match the working gadec-uk/departures-board SSD1322 wiring.
+  display_dc_pin: GPIO5
+  display_cs_pin: GPIO26
+  # Many ESP32 DevKitC-style boards/clones use GPIO2 for a controllable blue LED.
+  # Official Espressif DevKitC V4 boards may only have a power LED; in that case
+  # move this to an external LED pin or remove the status_led block.
+  status_led_pin: GPIO2
+
+packages:
+  network: !include shared/network.yaml
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+logger:
+
+status_led:
+  pin:
+    number: ${status_led_pin}
+    inverted: false
+    ignore_strapping_warning: true
+
+spi:
+  clk_pin: ${spi_clk_pin}
+  mosi_pin: ${spi_mosi_pin}
+
+globals:
+  # Buttons write this value; the display lambda consumes it on the next frame.
+  # Values: 0 none, 1 kick, 2 burst, 3 reset motion/object stream.
+  - id: requested_oled_action
+    type: int
+    restore_value: false
+    initial_value: "0"
+
+number:
+  - platform: template
+    id: physics_speed_percent
+    name: "Physics Speed"
+    optimistic: true
+    min_value: 45
+    max_value: 180
+    step: 5
+    initial_value: 95
+    unit_of_measurement: "%"
+    mode: slider
+
+  - platform: template
+    id: drift_percent
+    name: "Drift"
+    optimistic: true
+    min_value: 0
+    max_value: 100
+    step: 5
+    initial_value: 40
+    unit_of_measurement: "%"
+    mode: slider
+
+  - platform: template
+    id: trail_life_frames
+    name: "Trail Life"
+    optimistic: true
+    min_value: 6
+    max_value: 48
+    step: 2
+    initial_value: 24
+    unit_of_measurement: "frames"
+    mode: slider
+
+  - platform: template
+    id: floating_object_count
+    name: "Floating Objects"
+    optimistic: true
+    min_value: 0
+    max_value: 8
+    step: 1
+    initial_value: 5
+    mode: slider
+
+button:
+  - platform: template
+    name: "Kick Clock"
+    on_press:
+      - lambda: |-
+          id(requested_oled_action) = 1;
+
+  - platform: template
+    name: "Pixel Burst"
+    on_press:
+      - lambda: |-
+          id(requested_oled_action) = 2;
+
+  - platform: template
+    name: "Reset Motion"
+    on_press:
+      - lambda: |-
+          id(requested_oled_action) = 3;
+
+font:
+  # Public-domain 5x7 bitmap font used only for compact startup diagnostics.
+  - file: "fonts/5x7.bdf"
+    id: startup_debug_font
+    glyphs:
+      - " WIFCONEGTKPSYM0123456789.:"
+
+display:
+  - platform: ssd1322_spi
+    id: oled_display
+    model: "SSD1322 256x64"
+    cs_pin: ${display_cs_pin}
+    dc_pin:
+      number: ${display_dc_pin}
+      ignore_strapping_warning: true
+    update_interval: 33ms
+    lambda: |-
+      static const int WIDTH = 256;
+      static const int HEIGHT = 64;
+      static const int TEXT_SCALE = 4;
+      static const int TEXT_GAP = 1;
+      static const int TEXT_HEIGHT = 7 * TEXT_SCALE;
+      static const int EDGE_PADDING = 2;
+      static const int EDGE_BOUNCE_MIN = 24;
+      static const int EDGE_JOLT = 9;
+      static const int MAX_OBJECTS = 8;
+      static const int MAX_PARTICLES = 96;
+      static const int OBJECT_RESPAWN_MARGIN = 18;
+      static const int OBJECT_SPAWN_PAD = 10;
+      static const uint8_t DUST_EROSION_THRESHOLD = 66;  // 66 / 256 ~= 0.26.
+
+      // Custom 5x7 digit font shared with the HTML simulator. The SSD1322 can
+      // do grayscale, but this clock intentionally renders as 1-bit on/off.
+      static const uint8_t GLYPHS[11][7] = {
+        {0b01110, 0b10001, 0b10011, 0b10101, 0b11001, 0b10001, 0b01110}, // 0
+        {0b00100, 0b01100, 0b10100, 0b00100, 0b00100, 0b00100, 0b11111}, // 1
+        {0b01110, 0b10001, 0b00001, 0b00010, 0b00100, 0b01000, 0b11111}, // 2
+        {0b11110, 0b00001, 0b00001, 0b01110, 0b00001, 0b00001, 0b11110}, // 3
+        {0b00010, 0b00110, 0b01010, 0b10010, 0b11111, 0b00010, 0b00010}, // 4
+        {0b11111, 0b10000, 0b10000, 0b11110, 0b00001, 0b10001, 0b01110}, // 5
+        {0b01110, 0b10001, 0b10000, 0b11110, 0b10001, 0b10001, 0b01110}, // 6
+        {0b11111, 0b00001, 0b00010, 0b00100, 0b01000, 0b01000, 0b01000}, // 7
+        {0b01110, 0b10001, 0b10001, 0b01110, 0b10001, 0b10001, 0b01110}, // 8
+        {0b01110, 0b10001, 0b10001, 0b01111, 0b00001, 0b10001, 0b01110}, // 9
+        {0b0,     0b1,     0b1,     0b0,     0b1,     0b1,     0b0    }  // :
+      };
+      static const uint8_t WIDTHS[11] = {5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 1};
+
+      struct Body {
+        float x;
+        float y;
+        float vx;
+        float vy;
+        float radius;
+        float phase;
+      };
+
+      struct Particle {
+        float x;
+        float y;
+        float vx;
+        float vy;
+        float life;
+        float max_life;
+      };
+
+      static uint8_t trail[WIDTH * HEIGHT];
+      static Body time_body = {20.0f, 14.0f, 22.0f, 13.0f, 0.0f, 0.0f};
+      static Body objects[MAX_OBJECTS];
+      static int object_count = 0;
+      static Particle particles[MAX_PARTICLES];
+      static int particle_count = 0;
+      static uint32_t object_seed = 1;
+      static uint32_t edge_hit_count = 0;
+      static uint32_t frame = 0;
+      static uint32_t last_frame_ms = 0;
+      static bool startup_done = false;
+      static uint32_t wifi_connected_at = 0;
+
+      auto hash_u32 = [](uint32_t value) -> uint32_t {
+        value ^= value << 13;
+        value ^= value >> 17;
+        value ^= value << 5;
+        return value;
+      };
+
+      auto rand01 = [&](uint32_t seed) -> float {
+        return (hash_u32(seed * 747796405UL + 2891336453UL) & 0xFFFF) / 65535.0f;
+      };
+
+      auto clamp_float = [](float value, float min_value, float max_value) -> float {
+        if (value < min_value) return min_value;
+        if (value > max_value) return max_value;
+        return value;
+      };
+
+      auto clamp_int = [](int value, int min_value, int max_value) -> int {
+        if (value < min_value) return min_value;
+        if (value > max_value) return max_value;
+        return value;
+      };
+
+      auto limit_velocity = [](Body &body, float min_speed, float max_speed) {
+        float speed = sqrtf(body.vx * body.vx + body.vy * body.vy);
+        if (speed < 0.001f) {
+          body.vx = min_speed;
+          body.vy = 0.0f;
+          return;
+        }
+        if (speed < min_speed) {
+          body.vx = body.vx / speed * min_speed;
+          body.vy = body.vy / speed * min_speed;
+        } else if (speed > max_speed) {
+          body.vx = body.vx / speed * max_speed;
+          body.vy = body.vy / speed * max_speed;
+        }
+      };
+
+      auto time_to_glyphs = [](int time_seconds, int glyphs[8]) {
+        int hour = (time_seconds / 3600) % 24;
+        int minute = (time_seconds / 60) % 60;
+        int second = time_seconds % 60;
+        glyphs[0] = hour / 10;
+        glyphs[1] = hour % 10;
+        glyphs[2] = 10;
+        glyphs[3] = minute / 10;
+        glyphs[4] = minute % 10;
+        glyphs[5] = 10;
+        glyphs[6] = second / 10;
+        glyphs[7] = second % 10;
+      };
+
+      auto measure_glyphs = [](const int glyphs[8]) -> int {
+        int cursor = 0;
+        for (int i = 0; i < 8; i++) {
+          cursor += WIDTHS[glyphs[i]] + TEXT_GAP;
+        }
+        return cursor * TEXT_SCALE - TEXT_GAP * TEXT_SCALE;
+      };
+
+      auto set_trail_pixel = [&](int x, int y, uint8_t life) {
+        if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return;
+        uint16_t index = (uint16_t) (y * WIDTH + x);
+        if (life > trail[index]) trail[index] = life;
+      };
+
+      auto trail_life = [&]() -> uint8_t {
+        int life = (int) id(trail_life_frames).state;
+        return (uint8_t) clamp_int(life, 6, 48);
+      };
+
+      auto spawn_burst = [&](float x, float y, int count) {
+        for (int i = 0; i < count; i++) {
+          if (particle_count >= MAX_PARTICLES) {
+            for (int scan = 1; scan < MAX_PARTICLES; scan++) {
+              particles[scan - 1] = particles[scan];
+            }
+            particle_count = MAX_PARTICLES - 1;
+          }
+
+          uint32_t seed = frame * 131UL + (uint32_t) i * 977UL + (uint32_t) (x * 17.0f + y * 31.0f);
+          float angle = rand01(seed) * 6.2831853f;
+          float speed = 18.0f + rand01(seed + 11UL) * 44.0f;
+          float life = 0.28f + rand01(seed + 23UL) * 0.48f;
+          particles[particle_count++] = {
+            x,
+            y,
+            cosf(angle) * speed,
+            sinf(angle) * speed,
+            life,
+            life
+          };
+        }
+      };
+
+      auto edge_deflection = [&]() -> float {
+        edge_hit_count++;
+        return (rand01(edge_hit_count * 3191UL + frame * 17UL) - 0.5f) * EDGE_JOLT * 2.0f;
+      };
+
+      auto bounce_time_body = [&](int text_width) {
+        int max_x = WIDTH - text_width - EDGE_PADDING;
+        int max_y = HEIGHT - TEXT_HEIGHT - EDGE_PADDING;
+        int hit_x = 0;
+        int hit_y = 0;
+
+        if (time_body.x < EDGE_PADDING) {
+          time_body.x = EDGE_PADDING;
+          time_body.vx = fmaxf(fabsf(time_body.vx) * 0.96f, (float) EDGE_BOUNCE_MIN);
+          time_body.vy += edge_deflection();
+          hit_x = -1;
+        } else if (time_body.x > max_x) {
+          time_body.x = max_x;
+          time_body.vx = -fmaxf(fabsf(time_body.vx) * 0.96f, (float) EDGE_BOUNCE_MIN);
+          time_body.vy += edge_deflection();
+          hit_x = 1;
+        }
+
+        if (time_body.y < EDGE_PADDING) {
+          time_body.y = EDGE_PADDING;
+          time_body.vy = fmaxf(fabsf(time_body.vy) * 0.96f, (float) EDGE_BOUNCE_MIN);
+          time_body.vx += edge_deflection();
+          hit_y = -1;
+        } else if (time_body.y > max_y) {
+          time_body.y = max_y;
+          time_body.vy = -fmaxf(fabsf(time_body.vy) * 0.96f, (float) EDGE_BOUNCE_MIN);
+          time_body.vx += edge_deflection();
+          hit_y = 1;
+        }
+
+        if (hit_x != 0 || hit_y != 0) {
+          limit_velocity(time_body, 15.0f, 70.0f);
+          float contact_x = hit_x != 0 ? (hit_x < 0 ? 0.0f : (float) (WIDTH - 1)) : time_body.x + text_width / 2.0f;
+          float contact_y = hit_y != 0 ? (hit_y < 0 ? 0.0f : (float) (HEIGHT - 1)) : time_body.y + TEXT_HEIGHT / 2.0f;
+          spawn_burst(contact_x, contact_y, 8);
+        }
+      };
+
+      auto create_object = [&](bool inside) -> Body {
+        uint32_t seed = object_seed++;
+        float radius = 3.0f + (seed % 3);
+        Body object;
+
+        if (inside) {
+          object.x = 34.0f + rand01(seed * 2UL) * (WIDTH - 68.0f);
+          object.y = 8.0f + rand01(seed * 3UL) * (HEIGHT - 16.0f);
+          object.vx = -9.0f + rand01(seed * 5UL) * 18.0f;
+          object.vy = -7.0f + rand01(seed * 7UL) * 14.0f;
+          object.radius = radius;
+          object.phase = rand01(seed * 11UL) * 6.2831853f;
+          return object;
+        }
+
+        int edge = (int) (rand01(seed * 13UL) * 4.0f);
+        if (edge > 3) edge = 3;
+        float along_x = OBJECT_SPAWN_PAD + rand01(seed * 17UL) * (WIDTH - OBJECT_SPAWN_PAD * 2.0f);
+        float along_y = OBJECT_SPAWN_PAD + rand01(seed * 19UL) * (HEIGHT - OBJECT_SPAWN_PAD * 2.0f);
+        float speed = 8.0f + rand01(seed * 23UL) * 14.0f;
+        float wobble = -7.0f + rand01(seed * 29UL) * 14.0f;
+
+        object.x = along_x;
+        object.y = along_y;
+        object.vx = wobble;
+        object.vy = wobble;
+        object.radius = radius;
+        object.phase = rand01(seed * 31UL) * 6.2831853f;
+
+        if (edge == 0) {
+          object.x = -radius - OBJECT_SPAWN_PAD;
+          object.vx = speed;
+          object.vy = wobble;
+        } else if (edge == 1) {
+          object.x = WIDTH + radius + OBJECT_SPAWN_PAD;
+          object.vx = -speed;
+          object.vy = wobble;
+        } else if (edge == 2) {
+          object.y = -radius - OBJECT_SPAWN_PAD;
+          object.vx = wobble;
+          object.vy = speed;
+        } else {
+          object.y = HEIGHT + radius + OBJECT_SPAWN_PAD;
+          object.vx = wobble;
+          object.vy = -speed;
+        }
+
+        return object;
+      };
+
+      auto object_is_offscreen = [](const Body &object) -> bool {
+        return (
+          object.x + object.radius < -OBJECT_RESPAWN_MARGIN ||
+          object.x - object.radius > WIDTH + OBJECT_RESPAWN_MARGIN ||
+          object.y + object.radius < -OBJECT_RESPAWN_MARGIN ||
+          object.y - object.radius > HEIGHT + OBJECT_RESPAWN_MARGIN
+        );
+      };
+
+      auto particle_is_offscreen = [](const Particle &particle) -> bool {
+        return (
+          particle.x < -OBJECT_RESPAWN_MARGIN ||
+          particle.x > WIDTH + OBJECT_RESPAWN_MARGIN ||
+          particle.y < -OBJECT_RESPAWN_MARGIN ||
+          particle.y > HEIGHT + OBJECT_RESPAWN_MARGIN
+        );
+      };
+
+      auto collide_time_with_object = [&](Body &object, int text_width) {
+        float closest_x = clamp_float(object.x, time_body.x, time_body.x + text_width);
+        float closest_y = clamp_float(object.y, time_body.y, time_body.y + TEXT_HEIGHT);
+        float dx = object.x - closest_x;
+        float dy = object.y - closest_y;
+        float distance = sqrtf(dx * dx + dy * dy);
+        float min_distance = object.radius + 1.5f;
+
+        if (distance >= min_distance) return;
+
+        if (distance < 0.001f) {
+          dx = object.x - (time_body.x + text_width / 2.0f);
+          dy = object.y - (time_body.y + TEXT_HEIGHT / 2.0f);
+          distance = sqrtf(dx * dx + dy * dy);
+          if (distance < 0.001f) {
+            dx = 1.0f;
+            dy = 0.0f;
+            distance = 1.0f;
+          }
+        }
+
+        float nx = dx / distance;
+        float ny = dy / distance;
+        float approach = time_body.vx * nx + time_body.vy * ny;
+        float push = approach > 0.0f ? approach * 1.75f + 4.2f : 4.2f;
+
+        time_body.vx -= push * nx;
+        time_body.vy -= push * ny;
+        object.vx += nx * (9.0f + fabsf(approach) * 0.16f);
+        object.vy += ny * (9.0f + fabsf(approach) * 0.16f);
+        time_body.x -= nx * (min_distance - distance) * 0.8f;
+        time_body.y -= ny * (min_distance - distance) * 0.8f;
+        spawn_burst(closest_x, closest_y, 16);
+      };
+
+      auto fade_trail = [&]() {
+        uint8_t life = trail_life();
+        uint8_t fresh_trail = life > 2 ? life - 2 : 0;
+        frame++;
+
+        for (uint16_t index = 0; index < WIDTH * HEIGHT; index++) {
+          if (trail[index] == 0) continue;
+          trail[index]--;
+
+          if (
+            trail[index] > 0 &&
+            trail[index] < fresh_trail &&
+            (hash_u32((uint32_t) index * 37UL + frame * 101UL) & 0xFF) < DUST_EROSION_THRESHOLD
+          ) {
+            uint8_t extra = 2 + (hash_u32((uint32_t) index + frame * 263UL) & 0x03);
+            trail[index] = trail[index] > extra ? trail[index] - extra : 0;
+          }
+        }
+      };
+
+      auto draw_time_to_trail = [&](const int glyphs[8]) {
+        int origin_x = (int) (time_body.x + 0.5f);
+        int origin_y = (int) (time_body.y + 0.5f);
+        int cursor = 0;
+        uint8_t life = trail_life();
+
+        for (int i = 0; i < 8; i++) {
+          int glyph = glyphs[i];
+          int width = WIDTHS[glyph];
+
+          for (int row = 0; row < 7; row++) {
+            for (int col = 0; col < width; col++) {
+              uint8_t mask = 1 << (width - 1 - col);
+              if (!(GLYPHS[glyph][row] & mask)) continue;
+
+              for (int sy = 0; sy < TEXT_SCALE; sy++) {
+                for (int sx = 0; sx < TEXT_SCALE; sx++) {
+                  set_trail_pixel(
+                    origin_x + (cursor + col) * TEXT_SCALE + sx,
+                    origin_y + row * TEXT_SCALE + sy,
+                    life
+                  );
+                }
+              }
+            }
+          }
+
+          cursor += width + TEXT_GAP;
+        }
+      };
+
+      auto draw_objects_to_trail = [&]() {
+        uint8_t life = (uint8_t) fmaxf(4.0f, trail_life() * 0.55f);
+
+        for (int index = 0; index < object_count; index++) {
+          Body &object = objects[index];
+          int min_x = (int) floorf(object.x - object.radius - 1.0f);
+          int max_x = (int) ceilf(object.x + object.radius + 1.0f);
+          int min_y = (int) floorf(object.y - object.radius - 1.0f);
+          int max_y = (int) ceilf(object.y + object.radius + 1.0f);
+
+          for (int y = min_y; y <= max_y; y++) {
+            for (int x = min_x; x <= max_x; x++) {
+              float distance = sqrtf((x - object.x) * (x - object.x) + (y - object.y) * (y - object.y));
+              if (fabsf(distance - object.radius) < 0.75f || distance < 1.3f) {
+                set_trail_pixel(x, y, life);
+              }
+            }
+          }
+        }
+      };
+
+      auto update_particles_to_trail = [&](float dt) {
+        for (int index = particle_count - 1; index >= 0; index--) {
+          Particle &particle = particles[index];
+          particle.x += particle.vx * dt;
+          particle.y += particle.vy * dt;
+          particle.vx *= 0.992f;
+          particle.vy *= 0.992f;
+          particle.life -= dt;
+
+          if (particle.life <= 0.0f || particle_is_offscreen(particle)) {
+            particles[index] = particles[particle_count - 1];
+            particle_count--;
+            continue;
+          }
+
+          uint8_t life = (uint8_t) fmaxf(1.0f, trail_life() * clamp_float(particle.life / particle.max_life, 0.0f, 1.0f));
+          set_trail_pixel((int) (particle.x + 0.5f), (int) (particle.y + 0.5f), life);
+        }
+      };
+
+      auto reset_motion = [&]() {
+        time_body.x = 20.0f;
+        time_body.y = 14.0f;
+        time_body.vx = 22.0f;
+        time_body.vy = 13.0f;
+        object_count = 0;
+        particle_count = 0;
+        memset(trail, 0, sizeof(trail));
+
+        int target = clamp_int((int) id(floating_object_count).state, 0, MAX_OBJECTS);
+        while (object_count < target) {
+          objects[object_count++] = create_object(true);
+        }
+      };
+
+      uint32_t now_ms = millis();
+      float dt = last_frame_ms == 0 ? 0.033f : (now_ms - last_frame_ms) / 1000.0f;
+      last_frame_ms = now_ms;
+      dt = clamp_float(dt, 0.001f, 0.05f);
+
+      auto now = id(ntp_time).now();
+
+      if (!startup_done) {
+        it.fill(COLOR_OFF);
+
+        if (!network::is_connected()) {
+          wifi_connected_at = 0;
+          it.print(128, 20, id(startup_debug_font), TextAlign::TOP_CENTER, "WIFI CONNECTING");
+          return;
+        }
+
+        if (wifi_connected_at == 0) {
+          wifi_connected_at = now_ms;
+        }
+
+        if (!now.is_valid()) {
+          char ip_address[network::IP_ADDRESS_BUFFER_SIZE];
+          auto ip_addresses = network::get_ip_addresses();
+          ip_addresses[0].str_to(ip_address);
+          it.print(128, 8, id(startup_debug_font), TextAlign::TOP_CENTER, "WIFI OK");
+          it.print(128, 22, id(startup_debug_font), TextAlign::TOP_CENTER, ip_address);
+          it.print(128, 36, id(startup_debug_font), TextAlign::TOP_CENTER, "NTP SYNC");
+          return;
+        }
+
+        if (now_ms - wifi_connected_at < 3000) {
+          it.print(128, 18, id(startup_debug_font), TextAlign::TOP_CENTER, "TIME OK");
+          return;
+        }
+
+        startup_done = true;
+        reset_motion();
+      }
+
+      if (!now.is_valid()) {
+        it.fill(COLOR_OFF);
+        it.print(128, 20, id(startup_debug_font), TextAlign::TOP_CENTER, "NTP SYNC");
+        return;
+      }
+
+      int glyphs[8];
+      int time_seconds = now.hour * 3600 + now.minute * 60 + now.second;
+      time_to_glyphs(time_seconds, glyphs);
+      int text_width = measure_glyphs(glyphs);
+
+      int requested_action = id(requested_oled_action);
+      if (requested_action != 0) {
+        if (requested_action == 1) {
+          float angle = atan2f(time_body.vy, time_body.vx) + 3.1415926f * (0.55f + rand01(frame * 19UL + 3UL));
+          time_body.vx += cosf(angle) * 24.0f;
+          time_body.vy += sinf(angle) * 24.0f;
+          limit_velocity(time_body, 15.0f, 70.0f);
+          spawn_burst(time_body.x + text_width / 2.0f, time_body.y + TEXT_HEIGHT / 2.0f, 18);
+        } else if (requested_action == 2) {
+          spawn_burst(time_body.x + text_width / 2.0f, time_body.y + TEXT_HEIGHT / 2.0f, 44);
+        } else if (requested_action == 3) {
+          reset_motion();
+        }
+
+        id(requested_oled_action) = 0;
+      }
+
+      int target_objects = clamp_int((int) id(floating_object_count).state, 0, MAX_OBJECTS);
+      if (object_count == 0 && target_objects > 0) {
+        while (object_count < target_objects) {
+          objects[object_count++] = create_object(true);
+        }
+      }
+      while (object_count > target_objects) object_count--;
+
+      float elapsed_seconds = now_ms / 1000.0f;
+      float speed_scale = id(physics_speed_percent).state / 100.0f;
+      float drift_scale = id(drift_percent).state / 100.0f;
+      float drift_x = sinf(elapsed_seconds * 0.73f) + sinf(elapsed_seconds * 1.31f) * 0.45f;
+      float drift_y = cosf(elapsed_seconds * 0.91f) + sinf(elapsed_seconds * 1.77f) * 0.38f;
+
+      time_body.vx += drift_x * drift_scale * dt * 3.8f;
+      time_body.vy += drift_y * drift_scale * dt * 3.2f;
+      limit_velocity(time_body, 12.0f, 62.0f);
+      time_body.x += time_body.vx * speed_scale * dt;
+      time_body.y += time_body.vy * speed_scale * dt;
+      bounce_time_body(text_width);
+
+      for (int index = object_count - 1; index >= 0; index--) {
+        Body &object = objects[index];
+        float object_float = 0.45f + index * 0.17f;
+        object.vx += sinf(elapsed_seconds * object_float + object.phase) * dt * 0.9f;
+        object.vy += cosf(elapsed_seconds * (object_float + 0.21f) + object.phase) * dt * 0.8f;
+        limit_velocity(object, 3.0f, 28.0f);
+        object.x += object.vx * speed_scale * dt;
+        object.y += object.vy * speed_scale * dt;
+        collide_time_with_object(object, text_width);
+
+        if (object_is_offscreen(object)) {
+          objects[index] = objects[object_count - 1];
+          object_count--;
+        }
+      }
+
+      while (object_count < target_objects) {
+        objects[object_count++] = create_object(false);
+      }
+
+      bounce_time_body(text_width);
+      fade_trail();
+      draw_objects_to_trail();
+      draw_time_to_trail(glyphs);
+      update_particles_to_trail(dt);
+
+      it.fill(COLOR_OFF);
+      for (int y = 0; y < HEIGHT; y++) {
+        for (int x = 0; x < WIDTH; x++) {
+          if (trail[y * WIDTH + x] > 0) {
+            it.draw_pixel_at(x, y, COLOR_ON);
+          }
+        }
+      }
