@@ -104,6 +104,19 @@ The display shows local `HHMM` time on four flip-digit seven-segment modules
 driven through a MAX485-based TTL serial to RS485 transceiver. See
 `docs/FLPIDIGITS_CLOCK.md` for protocol, wiring, and address notes.
 
+### Analog Panel Meter Clock
+
+- ESPHome config: `esphome/analog-panel-meter-clock.yaml`
+- Display platform: MCP4728 I2C DAC driving two 0-5 V analog panel meters
+- Time source: NTP via shared ESPHome config
+- Home Assistant: intentionally not configured
+
+The hour meter uses MCP4728 channel A and moves as a continuous 12-hour clock
+hand, including minute and second progress. The minute meter uses channel B and
+moves continuously through each hour. See
+`docs/ANALOG_PANEL_METER_CLOCK.md` for wiring, calibration, and DAC-resolution
+notes.
+
 ### VFD Clock
 
 - ESPHome config: `esphome/vfd-clock.yaml`

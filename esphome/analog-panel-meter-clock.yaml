@@ -1,0 +1,274 @@
+substitutions:
+  name: analog-panel-meter-clock
+  friendly_name: "Analog Panel Meter Clock"
+  # ESP32-DevKitC V4 / classic ESP32 I2C pins.
+  i2c_sda_pin: GPIO21
+  i2c_scl_pin: GPIO22
+  mcp4728_address: "0x60"
+  meter_update_interval: 100ms
+  # Many ESP32 DevKitC-style boards/clones use GPIO2 for a controllable blue LED.
+  # Official Espressif DevKitC V4 boards may only have a power LED; in that case
+  # move this to an external LED pin or remove the status_led block.
+  status_led_pin: GPIO2
+
+packages:
+  network: !include shared/network.yaml
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+logger:
+
+status_led:
+  pin:
+    number: ${status_led_pin}
+    inverted: false
+    ignore_strapping_warning: true
+
+i2c:
+  sda: ${i2c_sda_pin}
+  scl: ${i2c_scl_pin}
+  frequency: 400kHz
+  scan: true
+
+mcp4728:
+  - id: panel_meter_dac
+    address: ${mcp4728_address}
+    # Keep clock updates in volatile DAC registers; repeated EEPROM writes would
+    # wear the MCP4728's non-volatile memory quickly.
+    store_in_eeprom: false
+
+output:
+  # Vref=vdd makes level 1.0 map to the DAC supply. Use a regulated 5 V DAC
+  # supply/reference for panel meters that expect a 0-5 V input span.
+  - platform: mcp4728
+    id: hour_meter_dac
+    mcp4728_id: panel_meter_dac
+    channel: A
+    vref: vdd
+    gain: X1
+    power_down: normal
+
+  - platform: mcp4728
+    id: minute_meter_dac
+    mcp4728_id: panel_meter_dac
+    channel: B
+    vref: vdd
+    gain: X1
+    power_down: normal
+
+globals:
+  - id: meter_mode_code
+    type: int
+    restore_value: false
+    initial_value: "0"
+  - id: last_observed_time_second
+    type: int
+    restore_value: false
+    initial_value: "-1"
+  - id: observed_second_started_at_ms
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+  - id: last_hour_dac_code
+    type: int
+    restore_value: false
+    initial_value: "-1"
+  - id: last_minute_dac_code
+    type: int
+    restore_value: false
+    initial_value: "-1"
+
+select:
+  - platform: template
+    id: meter_mode
+    name: "Meter Mode"
+    optimistic: true
+    initial_option: "Clock"
+    options:
+      - "Clock"
+      - "Zero"
+      - "Half Scale"
+      - "Full Scale"
+      - "Sweep"
+    on_value:
+      then:
+        - lambda: |-
+            if (x == "Clock") {
+              id(meter_mode_code) = 0;
+            } else if (x == "Zero") {
+              id(meter_mode_code) = 1;
+            } else if (x == "Half Scale") {
+              id(meter_mode_code) = 2;
+            } else if (x == "Full Scale") {
+              id(meter_mode_code) = 3;
+            } else if (x == "Sweep") {
+              id(meter_mode_code) = 4;
+            }
+            id(last_observed_time_second) = -1;
+
+number:
+  - platform: template
+    id: hour_meter_zero_level
+    name: "Hour Meter Zero Level"
+    optimistic: true
+    restore_value: true
+    min_value: 0
+    max_value: 100
+    step: 0.1
+    initial_value: 0
+    unit_of_measurement: "%"
+    mode: slider
+
+  - platform: template
+    id: hour_meter_full_scale_level
+    name: "Hour Meter Full Scale Level"
+    optimistic: true
+    restore_value: true
+    min_value: 0
+    max_value: 100
+    step: 0.1
+    initial_value: 100
+    unit_of_measurement: "%"
+    mode: slider
+
+  - platform: template
+    id: minute_meter_zero_level
+    name: "Minute Meter Zero Level"
+    optimistic: true
+    restore_value: true
+    min_value: 0
+    max_value: 100
+    step: 0.1
+    initial_value: 0
+    unit_of_measurement: "%"
+    mode: slider
+
+  - platform: template
+    id: minute_meter_full_scale_level
+    name: "Minute Meter Full Scale Level"
+    optimistic: true
+    restore_value: true
+    min_value: 0
+    max_value: 100
+    step: 0.1
+    initial_value: 100
+    unit_of_measurement: "%"
+    mode: slider
+
+interval:
+  - interval: ${meter_update_interval}
+    then:
+      - lambda: |-
+          static const int DAC_MAX_CODE = 4095;
+          static const int SECONDS_PER_HOUR = 3600;
+          static const int SECONDS_PER_12_HOURS = 12 * SECONDS_PER_HOUR;
+
+          auto clamp01 = [](float value) -> float {
+            if (value < 0.0f) return 0.0f;
+            if (value > 1.0f) return 1.0f;
+            return value;
+          };
+
+          auto calibrated_level = [&](float phase, float zero_percent, float full_percent) -> float {
+            float zero = clamp01(zero_percent / 100.0f);
+            float full = clamp01(full_percent / 100.0f);
+            return clamp01(zero + clamp01(phase) * (full - zero));
+          };
+
+          auto dac_code_for = [&](float level) -> int {
+            return (int) (clamp01(level) * (float) DAC_MAX_CODE + 0.5f);
+          };
+
+          auto write_meters = [&](float hour_phase, float minute_phase) {
+            float hour_level = calibrated_level(
+              hour_phase,
+              id(hour_meter_zero_level).state,
+              id(hour_meter_full_scale_level).state
+            );
+            float minute_level = calibrated_level(
+              minute_phase,
+              id(minute_meter_zero_level).state,
+              id(minute_meter_full_scale_level).state
+            );
+
+            int hour_code = dac_code_for(hour_level);
+            int minute_code = dac_code_for(minute_level);
+
+            if (hour_code != id(last_hour_dac_code)) {
+              id(last_hour_dac_code) = hour_code;
+              id(hour_meter_dac).set_level((float) hour_code / (float) DAC_MAX_CODE);
+            }
+            if (minute_code != id(last_minute_dac_code)) {
+              id(last_minute_dac_code) = minute_code;
+              id(minute_meter_dac).set_level((float) minute_code / (float) DAC_MAX_CODE);
+            }
+          };
+
+          auto triangle_phase = [](uint32_t now_ms, uint32_t period_ms) -> float {
+            float phase = (float) (now_ms % period_ms) / (float) period_ms;
+            if (phase < 0.5f) return phase * 2.0f;
+            return 2.0f - phase * 2.0f;
+          };
+
+          uint32_t now_ms = millis();
+
+          if (id(meter_mode_code) == 1) {
+            id(last_observed_time_second) = -1;
+            write_meters(0.0f, 0.0f);
+            return;
+          }
+          if (id(meter_mode_code) == 2) {
+            id(last_observed_time_second) = -1;
+            write_meters(0.5f, 0.5f);
+            return;
+          }
+          if (id(meter_mode_code) == 3) {
+            id(last_observed_time_second) = -1;
+            write_meters(1.0f, 1.0f);
+            return;
+          }
+          if (id(meter_mode_code) == 4) {
+            id(last_observed_time_second) = -1;
+            write_meters(
+              triangle_phase(now_ms, 8000),
+              triangle_phase(now_ms + 2000, 8000)
+            );
+            return;
+          }
+
+          if (!esphome::wifi::global_wifi_component->is_connected()) {
+            id(last_observed_time_second) = -1;
+            write_meters(0.0f, triangle_phase(now_ms, 4000));
+            return;
+          }
+
+          auto now = id(ntp_time).now();
+          if (!now.is_valid()) {
+            id(last_observed_time_second) = -1;
+            write_meters(0.25f, triangle_phase(now_ms, 4000));
+            return;
+          }
+
+          int time_second = now.hour * SECONDS_PER_HOUR + now.minute * 60 + now.second;
+          if (time_second != id(last_observed_time_second)) {
+            id(last_observed_time_second) = time_second;
+            id(observed_second_started_at_ms) = now_ms;
+          }
+
+          uint32_t elapsed_ms = now_ms - id(observed_second_started_at_ms);
+          if (elapsed_ms > 999) elapsed_ms = 999;
+          float fractional_second = (float) elapsed_ms / 1000.0f;
+
+          int hour_second = time_second % SECONDS_PER_12_HOURS;
+          int minute_second = time_second % SECONDS_PER_HOUR;
+          float hour_phase = ((float) hour_second + fractional_second) / (float) SECONDS_PER_12_HOURS;
+          float minute_phase = ((float) minute_second + fractional_second) / (float) SECONDS_PER_HOUR;
+
+          write_meters(hour_phase, minute_phase);
