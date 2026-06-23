@@ -23,6 +23,7 @@ void PicoEPaper4In2V2::setup() {
 
   this->spi_setup();
   this->initialize_();
+  this->sleeping_ = false;
 
   if (this->clear_on_setup_) {
     this->fill(display::COLOR_OFF);
@@ -49,6 +50,10 @@ void PicoEPaper4In2V2::setup_pins_() {
 float PicoEPaper4In2V2::get_setup_priority() const { return setup_priority::PROCESSOR; }
 
 void PicoEPaper4In2V2::update() {
+  if (this->sleeping_) {
+    return;
+  }
+
   if (this->buffer_ == nullptr) {
     ESP_LOGE(TAG, "Display buffer unavailable");
     return;
@@ -81,6 +86,23 @@ void PicoEPaper4In2V2::dump_config() {
 }
 
 void PicoEPaper4In2V2::on_safe_shutdown() { this->deep_sleep_(); }
+
+void PicoEPaper4In2V2::clear_and_deep_sleep() {
+  if (this->sleeping_ || this->is_failed()) {
+    return;
+  }
+
+  if (this->buffer_ == nullptr) {
+    ESP_LOGE(TAG, "Display buffer unavailable");
+    return;
+  }
+
+  ESP_LOGI(TAG, "Clearing e-paper display and entering deep sleep");
+  this->wait_until_idle_();
+  this->fill(display::COLOR_OFF);
+  this->has_previous_frame_ = this->display_full_();
+  this->deep_sleep_();
+}
 
 void PicoEPaper4In2V2::fill(Color color) {
   if (this->buffer_ == nullptr) {
@@ -136,6 +158,7 @@ bool PicoEPaper4In2V2::wait_until_idle_() {
 
 void PicoEPaper4In2V2::initialize_() {
   this->reset_();
+  this->sleeping_ = false;
 
   this->wait_until_idle_();
   this->send_command_(0x12);  // SWRESET
@@ -238,12 +261,14 @@ bool PicoEPaper4In2V2::turn_on_display_partial_() {
 }
 
 void PicoEPaper4In2V2::deep_sleep_() {
-  if (this->is_failed()) {
+  if (this->sleeping_ || this->is_failed()) {
     return;
   }
+  this->wait_until_idle_();
   this->send_command_(0x10);
   this->send_data_(0x01);
   delay(100);
+  this->sleeping_ = true;
 }
 
 void PicoEPaper4In2V2::set_window_(uint16_t x_start, uint16_t y_start, uint16_t x_end, uint16_t y_end) {

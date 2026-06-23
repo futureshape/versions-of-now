@@ -23,6 +23,8 @@ CS               GP9
 DC               GP8
 RST              GP12
 BUSY             GP13
+KEY0             GP15
+KEY1             GP17
 ```
 
 The board is treated as a black/white panel. Waveshare's official demo for this
@@ -45,6 +47,13 @@ minute changes force a full refresh to keep the panel clean. During startup,
 compact diagnostics show Wi-Fi and time-sync status, with diagnostic refreshes
 limited to once per minute.
 
+The board's KEY0 and KEY1 buttons are configured as active-low GPIO inputs with
+pull-ups. Pressing either button stops future display updates, clears the panel
+to white with a full refresh, and sends the Waveshare deep-sleep command. This
+is intended as a safe state before leaving the display powered for a long time or
+before removing power. The panel wakes again on the next Pico reboot, when the
+driver runs its normal reset and initialization sequence.
+
 The local `pico_epaper_4in2_v2` component lives under
 `esphome/components/pico_epaper_4in2_v2/` and is loaded with ESPHome
 `external_components`. It follows the Waveshare `EPD_4in2_V2` black/white
@@ -60,6 +69,9 @@ command sequence:
   then refresh with command `0x22` data `0xFF`, followed by command `0x20`.
   This mirrors the Waveshare demo's approach more closely than a dynamic
   full-framebuffer diff.
+- Button-triggered sleep: clear to white by sending `0xFF` to both RAM planes
+  and running a full refresh, then enter deep sleep with command `0x10` data
+  `0x01`.
 
 ESPHome's built-in `waveshare_epaper` 4.2 inch models use different command
 paths, including the older 4.2 inch sequence and the `EPD_4in2b_V2` B/R/BWR

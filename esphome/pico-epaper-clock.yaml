@@ -8,12 +8,16 @@ substitutions:
   #   DC   -> GP8
   #   RST  -> GP12
   #   BUSY -> GP13
+  #   KEY0 -> GP15
+  #   KEY1 -> GP17
   spi_clk_pin: GPIO10
   spi_mosi_pin: GPIO11
   display_cs_pin: GPIO9
   display_dc_pin: GPIO8
   display_reset_pin: GPIO12
   display_busy_pin: GPIO13
+  key0_pin: GPIO15
+  key1_pin: GPIO17
 
 packages:
   # Pico W keeps shared Wi-Fi, OTA, and SNTP, but skips web_server to avoid
@@ -68,6 +72,19 @@ globals:
     type: int
     restore_value: false
     initial_value: "-1"
+  - id: display_powered_down
+    type: bool
+    restore_value: false
+    initial_value: "false"
+
+script:
+  - id: clear_and_sleep_epaper
+    mode: single
+    then:
+      - lambda: |-
+          if (id(display_powered_down)) return;
+          id(display_powered_down) = true;
+          id(epaper_display).clear_and_deep_sleep();
 
 interval:
   - interval: 1s
@@ -75,6 +92,8 @@ interval:
       - if:
           condition:
             lambda: |-
+              if (id(display_powered_down)) return false;
+
               auto now = id(ntp_time).now();
               if (!now.is_valid()) {
                 int diagnostic_state = 0;
@@ -118,6 +137,7 @@ button:
     name: "Refresh Display"
     on_press:
       - lambda: |-
+          if (id(display_powered_down)) return;
           auto now = id(ntp_time).now();
           if (now.is_valid()) {
             int minute_key = now.day_of_year * 1440 + now.hour * 60 + now.minute;
@@ -126,6 +146,35 @@ button:
           }
           id(epaper_display).set_full_refresh_next();
       - component.update: epaper_display
+
+binary_sensor:
+  - platform: gpio
+    id: epaper_key0
+    internal: true
+    pin:
+      number: ${key0_pin}
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+    filters:
+      - delayed_on: 50ms
+    on_press:
+      - script.execute: clear_and_sleep_epaper
+
+  - platform: gpio
+    id: epaper_key1
+    internal: true
+    pin:
+      number: ${key1_pin}
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+    filters:
+      - delayed_on: 50ms
+    on_press:
+      - script.execute: clear_and_sleep_epaper
 
 font:
   - file:

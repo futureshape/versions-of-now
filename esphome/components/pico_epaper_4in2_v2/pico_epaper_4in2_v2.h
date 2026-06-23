@@ -35,6 +35,7 @@ class PicoEPaper4In2V2 : public display::DisplayBuffer,
   void on_safe_shutdown() override;
   float get_setup_priority() const override;
 
+  void clear_and_deep_sleep();
   void fill(Color color) override;
   display::DisplayType get_display_type() override { return display::DisplayType::DISPLAY_TYPE_BINARY; }
 
@@ -65,6 +66,7 @@ class PicoEPaper4In2V2 : public display::DisplayBuffer,
   bool full_refresh_next_{true};
   bool has_previous_frame_{false};
   bool has_partial_window_{false};
+  bool sleeping_{false};
 
   void setup_pins_();
   void reset_();
