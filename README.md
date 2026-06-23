@@ -130,6 +130,19 @@ The Pi boots directly into Jamie Zawinski's native Linux/X11 Dali Clock app.
 See `rpi/xdaliclock-hyperpixel-square/README.md` for SD-card setup and
 HyperPixel driver notes.
 
+### Speaking Clock
+
+- Raspberry Pi install: `rpi/speaking-clock/`
+- Output: system audio output for a vintage telephone handset headset
+- Runtime: Python standard library, `espeak-ng`, and ALSA on Raspberry Pi;
+  built-in `say` and `afplay` on macOS for testing
+- Time source: system clock synchronized by the OS, with the Pi service waiting
+  for NTP sync before announcing
+
+The clock announces the local time every 10 seconds with a UK speaking-clock
+style phrase and three 1 kHz strokes, scheduling the third stroke on the
+announced time. See `rpi/speaking-clock/README.md` for setup and calibration.
+
 ## Development Workflow
 
 1. Prototype display layout and animation in `simulator/` (if neceesary, otherwise skip to esphome)

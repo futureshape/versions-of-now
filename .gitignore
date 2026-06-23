@@ -1,1 +1,6 @@
 rpi/xdaliclock-hyperpixel-square/sd-card.env
+
+# Python bytecode/cache files are generated locally.
+__pycache__/
+*.py[cod]
+*$py.class
