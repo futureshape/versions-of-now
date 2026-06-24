@@ -1,0 +1,1101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pegboard Layout Tool</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #eef3f5;
+        --surface: #ffffff;
+        --surface-2: #f6f8fa;
+        --text: #17202a;
+        --muted: #657281;
+        --line: #d7dee6;
+        --line-strong: #aeb8c3;
+        --accent: #146c94;
+        --accent-strong: #104f70;
+        --selected: #2449d8;
+        --danger: #c1121f;
+        --danger-soft: rgba(193, 18, 31, 0.14);
+        --grid-fill: #fbfcfd;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      button {
+        min-height: 38px;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        padding: 8px 12px;
+        background: var(--accent);
+        color: white;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: var(--accent-strong);
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.48;
+      }
+
+      button.secondary {
+        border-color: var(--line);
+        background: var(--surface);
+        color: var(--text);
+      }
+
+      button.secondary:hover {
+        border-color: var(--line-strong);
+        background: var(--surface-2);
+      }
+
+      button.danger {
+        border-color: rgba(193, 18, 31, 0.28);
+        background: white;
+        color: var(--danger);
+      }
+
+      button.danger:hover {
+        background: var(--danger-soft);
+      }
+
+      input {
+        width: 100%;
+        min-height: 38px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 8px 10px;
+        background: white;
+        color: var(--text);
+      }
+
+      input:focus,
+      button:focus-visible {
+        outline: 3px solid rgba(36, 73, 216, 0.22);
+        outline-offset: 2px;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      .app {
+        min-height: 100vh;
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
+
+      .app-header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.94);
+        backdrop-filter: blur(10px);
+      }
+
+      .title-group {
+        display: grid;
+        gap: 4px;
+      }
+
+      h1 {
+        font-size: 1.35rem;
+        line-height: 1.1;
+      }
+
+      .status-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 0.86rem;
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 2px 9px;
+        background: var(--surface);
+        white-space: nowrap;
+      }
+
+      .status-pill.problem {
+        border-color: rgba(193, 18, 31, 0.35);
+        background: var(--danger-soft);
+        color: var(--danger);
+        font-weight: 700;
+      }
+
+      .header-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .workspace {
+        min-height: 0;
+        display: grid;
+        grid-template-columns: 310px minmax(0, 1fr);
+      }
+
+      .controls {
+        min-height: 0;
+        overflow: auto;
+        display: grid;
+        align-content: start;
+        gap: 16px;
+        padding: 18px;
+        border-right: 1px solid var(--line);
+        background: var(--surface);
+      }
+
+      .panel {
+        display: grid;
+        gap: 12px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .panel:last-child {
+        padding-bottom: 0;
+        border-bottom: 0;
+      }
+
+      h2 {
+        font-size: 0.92rem;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .field {
+        display: grid;
+        gap: 6px;
+      }
+
+      .field.wide {
+        grid-column: 1 / -1;
+      }
+
+      label {
+        color: #2a3643;
+        font-size: 0.84rem;
+        font-weight: 700;
+      }
+
+      .button-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .button-row .wide {
+        grid-column: 1 / -1;
+      }
+
+      .board-area {
+        min-width: 0;
+        min-height: 0;
+        display: flex;
+        background: #edf3f6;
+      }
+
+      .board-scroll {
+        flex: 1;
+        overflow: auto;
+        padding: 18px;
+      }
+
+      .board-shell {
+        width: max-content;
+        min-width: 100%;
+        display: grid;
+        grid-template-columns: 42px max-content;
+        grid-template-rows: 32px max-content;
+        align-content: start;
+      }
+
+      .axis-corner {
+        border-right: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .column-numbers,
+      .row-numbers {
+        color: var(--muted);
+        font-size: 0.72rem;
+        font-variant-numeric: tabular-nums;
+        user-select: none;
+      }
+
+      .column-numbers {
+        display: grid;
+        align-items: end;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .row-numbers {
+        display: grid;
+        justify-items: end;
+        border-right: 1px solid var(--line);
+      }
+
+      .axis-label {
+        display: grid;
+        place-items: center;
+        min-width: 0;
+        min-height: 0;
+      }
+
+      .row-numbers .axis-label {
+        padding-right: 8px;
+      }
+
+      .grid {
+        position: relative;
+        overflow: hidden;
+        border-right: 1px solid var(--line-strong);
+        border-bottom: 1px solid var(--line-strong);
+        background-color: var(--grid-fill);
+        background-image:
+          linear-gradient(to right, var(--line) 1px, transparent 1px),
+          linear-gradient(to bottom, var(--line) 1px, transparent 1px),
+          linear-gradient(to right, rgba(20, 108, 148, 0.22) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(20, 108, 148, 0.22) 1px, transparent 1px);
+        box-shadow: 0 12px 30px rgba(23, 32, 42, 0.09);
+        touch-action: none;
+        isolation: isolate;
+      }
+
+      .grid:focus {
+        outline: 3px solid rgba(36, 73, 216, 0.2);
+        outline-offset: 4px;
+      }
+
+      .block {
+        position: absolute;
+        z-index: 1;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        border: 2px solid var(--block-border, var(--accent));
+        border-radius: 4px;
+        background: var(--block-fill, rgba(20, 108, 148, 0.18));
+        color: #12212d;
+        cursor: grab;
+        font-weight: 800;
+        line-height: 1.1;
+        padding: 6px;
+        text-align: center;
+        touch-action: none;
+        user-select: none;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.55);
+      }
+
+      .block.selected {
+        z-index: 4;
+        outline: 3px solid rgba(36, 73, 216, 0.58);
+        outline-offset: 2px;
+      }
+
+      .block.dragging {
+        cursor: grabbing;
+        opacity: 0.94;
+      }
+
+      .block.overlap {
+        border-color: var(--danger);
+        box-shadow:
+          0 0 0 2px rgba(193, 18, 31, 0.18),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.58);
+      }
+
+      .block-name {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+      }
+
+      @media (max-width: 860px) {
+        .app-header {
+          align-items: start;
+          flex-direction: column;
+        }
+
+        .header-actions {
+          justify-content: start;
+        }
+
+        .workspace {
+          grid-template-columns: 1fr;
+        }
+
+        .controls {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+          max-height: none;
+        }
+
+        .board-area {
+          min-height: 58vh;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="app-header">
+        <div class="title-group">
+          <h1>Pegboard Layout</h1>
+          <div class="status-row">
+            <span class="status-pill" id="saveStatus">Saved</span>
+            <span class="status-pill" id="overlapStatus">No overlaps</span>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button type="button" id="addRect">Add Rectangle</button>
+          <button type="button" class="secondary" id="duplicateRect">Duplicate</button>
+          <button type="button" class="danger" id="deleteRect">Delete</button>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <aside class="controls" aria-label="Layout controls">
+          <section class="panel">
+            <h2>Board</h2>
+            <div class="form-grid">
+              <div class="field">
+                <label for="columns">Columns</label>
+                <input id="columns" type="number" min="4" max="80" step="1">
+              </div>
+              <div class="field">
+                <label for="rows">Rows</label>
+                <input id="rows" type="number" min="4" max="80" step="1">
+              </div>
+              <div class="field wide">
+                <label for="cellSize">Cell size</label>
+                <input id="cellSize" type="number" min="22" max="72" step="1">
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h2>Rectangle</h2>
+            <div class="form-grid">
+              <div class="field wide">
+                <label for="rectName">Name</label>
+                <input id="rectName" type="text" autocomplete="off">
+              </div>
+              <div class="field">
+                <label for="rectColumn">Column</label>
+                <input id="rectColumn" type="number" min="1" step="1">
+              </div>
+              <div class="field">
+                <label for="rectRow">Row</label>
+                <input id="rectRow" type="number" min="1" step="1">
+              </div>
+              <div class="field">
+                <label for="rectWidth">Width</label>
+                <input id="rectWidth" type="number" min="1" step="1">
+              </div>
+              <div class="field">
+                <label for="rectHeight">Height</label>
+                <input id="rectHeight" type="number" min="1" step="1">
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h2>Layout</h2>
+            <div class="button-row">
+              <button type="button" class="secondary wide" id="clearLayout">Clear Layout</button>
+            </div>
+          </section>
+        </aside>
+
+        <section class="board-area" aria-label="Pegboard grid">
+          <div class="board-scroll">
+            <div class="board-shell">
+              <div class="axis-corner" aria-hidden="true"></div>
+              <div class="column-numbers" id="columnNumbers" aria-hidden="true"></div>
+              <div class="row-numbers" id="rowNumbers" aria-hidden="true"></div>
+              <div class="grid" id="grid" tabindex="0" aria-label="Numbered pegboard layout grid"></div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      (() => {
+        "use strict";
+
+        const STORAGE_KEY = "versions-of-now:pegboard-layout:v1";
+        const palette = [
+          { fill: "rgba(20, 108, 148, 0.18)", border: "#146c94" },
+          { fill: "rgba(76, 149, 108, 0.2)", border: "#2d7d4f" },
+          { fill: "rgba(218, 155, 44, 0.22)", border: "#b97814" },
+          { fill: "rgba(118, 91, 166, 0.2)", border: "#6d55a1" },
+          { fill: "rgba(42, 117, 126, 0.2)", border: "#2a757e" },
+          { fill: "rgba(196, 95, 73, 0.2)", border: "#b24f3e" }
+        ];
+
+        const elements = {
+          grid: document.getElementById("grid"),
+          columnNumbers: document.getElementById("columnNumbers"),
+          rowNumbers: document.getElementById("rowNumbers"),
+          saveStatus: document.getElementById("saveStatus"),
+          overlapStatus: document.getElementById("overlapStatus"),
+          addRect: document.getElementById("addRect"),
+          duplicateRect: document.getElementById("duplicateRect"),
+          deleteRect: document.getElementById("deleteRect"),
+          clearLayout: document.getElementById("clearLayout"),
+          columns: document.getElementById("columns"),
+          rows: document.getElementById("rows"),
+          cellSize: document.getElementById("cellSize"),
+          rectName: document.getElementById("rectName"),
+          rectColumn: document.getElementById("rectColumn"),
+          rectRow: document.getElementById("rectRow"),
+          rectWidth: document.getElementById("rectWidth"),
+          rectHeight: document.getElementById("rectHeight")
+        };
+
+        const geometryFields = [
+          elements.rectColumn,
+          elements.rectRow,
+          elements.rectWidth,
+          elements.rectHeight
+        ];
+
+        let state = loadState();
+        let drag = null;
+        let saveHandle = 0;
+
+        function defaultState() {
+          return {
+            version: 1,
+            columns: 20,
+            rows: 20,
+            cellSize: 38,
+            nextNumber: 1,
+            selectedId: null,
+            rectangles: []
+          };
+        }
+
+        function clamp(value, min, max) {
+          return Math.min(Math.max(value, min), max);
+        }
+
+        function toInt(value, fallback) {
+          const number = Number.parseInt(value, 10);
+          return Number.isFinite(number) ? number : fallback;
+        }
+
+        function newId() {
+          const timePart = Date.now().toString(36);
+          const randomPart = Math.random().toString(36).slice(2, 8);
+          return `rect-${timePart}-${randomPart}`;
+        }
+
+        function loadState() {
+          try {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            return saved ? normalizeState(JSON.parse(saved)) : defaultState();
+          } catch (error) {
+            return defaultState();
+          }
+        }
+
+        function normalizeState(raw) {
+          const fallback = defaultState();
+          const layout = {
+            version: 1,
+            columns: clamp(toInt(raw.columns, fallback.columns), 4, 80),
+            rows: clamp(toInt(raw.rows, fallback.rows), 4, 80),
+            cellSize: clamp(toInt(raw.cellSize, fallback.cellSize), 22, 72),
+            nextNumber: Math.max(1, toInt(raw.nextNumber, fallback.nextNumber)),
+            selectedId: typeof raw.selectedId === "string" ? raw.selectedId : null,
+            rectangles: []
+          };
+
+          const rectangles = Array.isArray(raw.rectangles) ? raw.rectangles : [];
+          layout.rectangles = rectangles.map((rectangle, index) => normalizeRectangle(rectangle, index, layout));
+          clampRectangles(layout);
+
+          if (!layout.rectangles.some((rectangle) => rectangle.id === layout.selectedId)) {
+            layout.selectedId = null;
+          }
+
+          return layout;
+        }
+
+        function normalizeRectangle(rectangle, index, layout) {
+          const paletteEntry = palette[index % palette.length];
+          const width = clamp(toInt(rectangle.width, 4), 1, layout.columns);
+          const height = clamp(toInt(rectangle.height, 3), 1, layout.rows);
+
+          return {
+            id: typeof rectangle.id === "string" ? rectangle.id : newId(),
+            name: typeof rectangle.name === "string" ? rectangle.name : `Clock ${index + 1}`,
+            column: clamp(toInt(rectangle.column, 0), 0, layout.columns - width),
+            row: clamp(toInt(rectangle.row, 0), 0, layout.rows - height),
+            width,
+            height,
+            fill: typeof rectangle.fill === "string" ? rectangle.fill : paletteEntry.fill,
+            border: typeof rectangle.border === "string" ? rectangle.border : paletteEntry.border
+          };
+        }
+
+        function clampRectangles(layout = state) {
+          layout.rectangles.forEach((rectangle) => {
+            rectangle.width = clamp(toInt(rectangle.width, 1), 1, layout.columns);
+            rectangle.height = clamp(toInt(rectangle.height, 1), 1, layout.rows);
+            rectangle.column = clamp(toInt(rectangle.column, 0), 0, layout.columns - rectangle.width);
+            rectangle.row = clamp(toInt(rectangle.row, 0), 0, layout.rows - rectangle.height);
+          });
+        }
+
+        function getRectangle(id) {
+          return state.rectangles.find((rectangle) => rectangle.id === id) || null;
+        }
+
+        function getSelectedRectangle() {
+          return getRectangle(state.selectedId);
+        }
+
+        function getBlockElement(id) {
+          return Array.from(elements.grid.children).find((block) => block.dataset.id === id) || null;
+        }
+
+        function rectanglesOverlap(a, b) {
+          return (
+            a.column < b.column + b.width &&
+            a.column + a.width > b.column &&
+            a.row < b.row + b.height &&
+            a.row + a.height > b.row
+          );
+        }
+
+        function getOverlapIds() {
+          const ids = new Set();
+
+          for (let first = 0; first < state.rectangles.length; first += 1) {
+            for (let second = first + 1; second < state.rectangles.length; second += 1) {
+              const a = state.rectangles[first];
+              const b = state.rectangles[second];
+
+              if (rectanglesOverlap(a, b)) {
+                ids.add(a.id);
+                ids.add(b.id);
+              }
+            }
+          }
+
+          return ids;
+        }
+
+        function findFirstFit(width, height, skipId = null) {
+          for (let row = 0; row <= state.rows - height; row += 1) {
+            for (let column = 0; column <= state.columns - width; column += 1) {
+              const candidate = { column, row, width, height };
+              const hasOverlap = state.rectangles.some((rectangle) => {
+                return rectangle.id !== skipId && rectanglesOverlap(rectangle, candidate);
+              });
+
+              if (!hasOverlap) {
+                return { column, row };
+              }
+            }
+          }
+
+          return { column: 0, row: 0 };
+        }
+
+        function renderBoard() {
+          const gridWidth = state.columns * state.cellSize;
+          const gridHeight = state.rows * state.cellSize;
+          const majorSize = state.cellSize * 4;
+
+          elements.grid.style.width = `${gridWidth}px`;
+          elements.grid.style.height = `${gridHeight}px`;
+          elements.grid.style.backgroundSize = [
+            `${state.cellSize}px ${state.cellSize}px`,
+            `${state.cellSize}px ${state.cellSize}px`,
+            `${majorSize}px ${majorSize}px`,
+            `${majorSize}px ${majorSize}px`
+          ].join(", ");
+
+          elements.columnNumbers.style.width = `${gridWidth}px`;
+          elements.columnNumbers.style.gridTemplateColumns = `repeat(${state.columns}, ${state.cellSize}px)`;
+          elements.rowNumbers.style.height = `${gridHeight}px`;
+          elements.rowNumbers.style.gridTemplateRows = `repeat(${state.rows}, ${state.cellSize}px)`;
+
+          renderAxisLabels(elements.columnNumbers, state.columns);
+          renderAxisLabels(elements.rowNumbers, state.rows);
+          syncBoardForm();
+        }
+
+        function renderAxisLabels(container, count) {
+          const fragment = document.createDocumentFragment();
+
+          for (let index = 1; index <= count; index += 1) {
+            const label = document.createElement("div");
+            label.className = "axis-label";
+            label.textContent = index;
+            fragment.append(label);
+          }
+
+          container.replaceChildren(fragment);
+        }
+
+        function renderRectangles() {
+          const overlapIds = getOverlapIds();
+          const fragment = document.createDocumentFragment();
+
+          state.rectangles.forEach((rectangle) => {
+            const block = document.createElement("div");
+            block.className = "block";
+            block.dataset.id = rectangle.id;
+            block.style.setProperty("--block-fill", rectangle.fill);
+            block.style.setProperty("--block-border", rectangle.border);
+            block.classList.toggle("selected", rectangle.id === state.selectedId);
+            block.classList.toggle("overlap", overlapIds.has(rectangle.id));
+            positionBlock(block, rectangle);
+
+            const name = document.createElement("span");
+            name.className = "block-name";
+            name.textContent = rectangle.name;
+            block.append(name);
+            fragment.append(block);
+          });
+
+          elements.grid.replaceChildren(fragment);
+          updateOverlapStatus(overlapIds);
+        }
+
+        function positionBlock(block, rectangle) {
+          block.style.left = `${rectangle.column * state.cellSize}px`;
+          block.style.top = `${rectangle.row * state.cellSize}px`;
+          block.style.width = `${rectangle.width * state.cellSize}px`;
+          block.style.height = `${rectangle.height * state.cellSize}px`;
+        }
+
+        function updateOverlapClasses() {
+          const overlapIds = getOverlapIds();
+
+          elements.grid.querySelectorAll(".block").forEach((block) => {
+            block.classList.toggle("overlap", overlapIds.has(block.dataset.id));
+          });
+
+          updateOverlapStatus(overlapIds);
+        }
+
+        function updateSelectionClasses() {
+          elements.grid.querySelectorAll(".block").forEach((block) => {
+            block.classList.toggle("selected", block.dataset.id === state.selectedId);
+          });
+        }
+
+        function updateOverlapStatus(overlapIds = getOverlapIds()) {
+          const hasOverlap = overlapIds.size > 0;
+          elements.overlapStatus.textContent = hasOverlap ? `${overlapIds.size} overlapping` : "No overlaps";
+          elements.overlapStatus.classList.toggle("problem", hasOverlap);
+        }
+
+        function syncBoardForm() {
+          elements.columns.value = state.columns;
+          elements.rows.value = state.rows;
+          elements.cellSize.value = state.cellSize;
+        }
+
+        function syncSelectedForm() {
+          const rectangle = getSelectedRectangle();
+          const hasSelection = Boolean(rectangle);
+
+          elements.duplicateRect.disabled = !hasSelection;
+          elements.deleteRect.disabled = !hasSelection;
+          elements.rectName.disabled = !hasSelection;
+          geometryFields.forEach((field) => {
+            field.disabled = !hasSelection;
+          });
+
+          elements.rectColumn.max = state.columns;
+          elements.rectRow.max = state.rows;
+          elements.rectWidth.max = state.columns;
+          elements.rectHeight.max = state.rows;
+
+          if (!rectangle) {
+            elements.rectName.value = "";
+            elements.rectColumn.value = "";
+            elements.rectRow.value = "";
+            elements.rectWidth.value = "";
+            elements.rectHeight.value = "";
+            return;
+          }
+
+          elements.rectName.value = rectangle.name;
+          elements.rectColumn.value = rectangle.column + 1;
+          elements.rectRow.value = rectangle.row + 1;
+          elements.rectWidth.value = rectangle.width;
+          elements.rectHeight.value = rectangle.height;
+        }
+
+        function scheduleSave() {
+          window.clearTimeout(saveHandle);
+          elements.saveStatus.textContent = "Saving";
+          saveHandle = window.setTimeout(saveState, 120);
+        }
+
+        function saveState() {
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            elements.saveStatus.textContent = "Saved";
+          } catch (error) {
+            elements.saveStatus.textContent = "Storage blocked";
+          }
+
+          saveHandle = 0;
+        }
+
+        function selectRectangle(id, persist = true) {
+          state.selectedId = id;
+          updateSelectionClasses();
+          syncSelectedForm();
+
+          if (persist) {
+            scheduleSave();
+          }
+        }
+
+        function addRectangle() {
+          const width = Math.min(4, state.columns);
+          const height = Math.min(3, state.rows);
+          const position = findFirstFit(width, height);
+          const paletteEntry = palette[(state.nextNumber - 1) % palette.length];
+          const rectangle = {
+            id: newId(),
+            name: `Clock ${state.nextNumber}`,
+            column: position.column,
+            row: position.row,
+            width,
+            height,
+            fill: paletteEntry.fill,
+            border: paletteEntry.border
+          };
+
+          state.nextNumber += 1;
+          state.rectangles.push(rectangle);
+          state.selectedId = rectangle.id;
+          renderRectangles();
+          syncSelectedForm();
+          scheduleSave();
+        }
+
+        function duplicateSelectedRectangle() {
+          const source = getSelectedRectangle();
+
+          if (!source) {
+            return;
+          }
+
+          const position = findFirstFit(source.width, source.height, source.id);
+          const rectangle = {
+            ...source,
+            id: newId(),
+            name: `${source.name} copy`,
+            column: position.column,
+            row: position.row
+          };
+
+          state.rectangles.push(rectangle);
+          state.selectedId = rectangle.id;
+          renderRectangles();
+          syncSelectedForm();
+          scheduleSave();
+        }
+
+        function deleteSelectedRectangle() {
+          const selected = getSelectedRectangle();
+
+          if (!selected) {
+            return;
+          }
+
+          state.rectangles = state.rectangles.filter((rectangle) => rectangle.id !== selected.id);
+          state.selectedId = null;
+          renderRectangles();
+          syncSelectedForm();
+          scheduleSave();
+        }
+
+        function clearLayout() {
+          if (state.rectangles.length === 0) {
+            return;
+          }
+
+          const confirmed = window.confirm("Clear all rectangles from this layout?");
+
+          if (!confirmed) {
+            return;
+          }
+
+          state.rectangles = [];
+          state.selectedId = null;
+          renderRectangles();
+          syncSelectedForm();
+          scheduleSave();
+        }
+
+        function updateBoardFromForm() {
+          state.columns = clamp(toInt(elements.columns.value, state.columns), 4, 80);
+          state.rows = clamp(toInt(elements.rows.value, state.rows), 4, 80);
+          state.cellSize = clamp(toInt(elements.cellSize.value, state.cellSize), 22, 72);
+          clampRectangles();
+          renderBoard();
+          renderRectangles();
+          syncSelectedForm();
+          scheduleSave();
+        }
+
+        function updateSelectedName() {
+          const rectangle = getSelectedRectangle();
+
+          if (!rectangle) {
+            return;
+          }
+
+          rectangle.name = elements.rectName.value;
+
+          const block = getBlockElement(rectangle.id);
+          const name = block ? block.querySelector(".block-name") : null;
+
+          if (name) {
+            name.textContent = rectangle.name;
+          }
+
+          scheduleSave();
+        }
+
+        function updateSelectedGeometryFromForm() {
+          const rectangle = getSelectedRectangle();
+
+          if (!rectangle) {
+            return;
+          }
+
+          const width = clamp(toInt(elements.rectWidth.value, rectangle.width), 1, state.columns);
+          const height = clamp(toInt(elements.rectHeight.value, rectangle.height), 1, state.rows);
+          rectangle.width = width;
+          rectangle.height = height;
+          rectangle.column = clamp(toInt(elements.rectColumn.value, rectangle.column + 1) - 1, 0, state.columns - width);
+          rectangle.row = clamp(toInt(elements.rectRow.value, rectangle.row + 1) - 1, 0, state.rows - height);
+
+          renderRectangles();
+          syncSelectedForm();
+          scheduleSave();
+        }
+
+        function moveSelectedBy(deltaColumn, deltaRow) {
+          const rectangle = getSelectedRectangle();
+
+          if (!rectangle) {
+            return;
+          }
+
+          rectangle.column = clamp(rectangle.column + deltaColumn, 0, state.columns - rectangle.width);
+          rectangle.row = clamp(rectangle.row + deltaRow, 0, state.rows - rectangle.height);
+
+          const block = getBlockElement(rectangle.id);
+
+          if (block) {
+            positionBlock(block, rectangle);
+          }
+
+          syncSelectedForm();
+          updateOverlapClasses();
+          scheduleSave();
+        }
+
+        function onPointerDown(event) {
+          const block = event.target.closest(".block");
+
+          if (!block || event.button !== 0) {
+            if (!block) {
+              selectRectangle(null);
+            }
+            return;
+          }
+
+          const rectangle = getRectangle(block.dataset.id);
+
+          if (!rectangle) {
+            return;
+          }
+
+          const gridBounds = elements.grid.getBoundingClientRect();
+          const cellWidth = gridBounds.width / state.columns;
+          const cellHeight = gridBounds.height / state.rows;
+
+          selectRectangle(rectangle.id);
+          block.setPointerCapture(event.pointerId);
+          block.classList.add("dragging");
+
+          drag = {
+            id: rectangle.id,
+            pointerId: event.pointerId,
+            startClientX: event.clientX,
+            startClientY: event.clientY,
+            startColumn: rectangle.column,
+            startRow: rectangle.row,
+            cellWidth,
+            cellHeight
+          };
+
+          event.preventDefault();
+        }
+
+        function onPointerMove(event) {
+          if (!drag || event.pointerId !== drag.pointerId) {
+            return;
+          }
+
+          const rectangle = getRectangle(drag.id);
+
+          if (!rectangle) {
+            return;
+          }
+
+          const deltaColumn = Math.round((event.clientX - drag.startClientX) / drag.cellWidth);
+          const deltaRow = Math.round((event.clientY - drag.startClientY) / drag.cellHeight);
+          const nextColumn = clamp(drag.startColumn + deltaColumn, 0, state.columns - rectangle.width);
+          const nextRow = clamp(drag.startRow + deltaRow, 0, state.rows - rectangle.height);
+
+          if (rectangle.column === nextColumn && rectangle.row === nextRow) {
+            return;
+          }
+
+          rectangle.column = nextColumn;
+          rectangle.row = nextRow;
+
+          const block = getBlockElement(rectangle.id);
+
+          if (block) {
+            positionBlock(block, rectangle);
+          }
+
+          syncSelectedForm();
+          updateOverlapClasses();
+          scheduleSave();
+        }
+
+        function endDrag(event) {
+          if (!drag || event.pointerId !== drag.pointerId) {
+            return;
+          }
+
+          const block = getBlockElement(drag.id);
+
+          if (block) {
+            block.classList.remove("dragging");
+          }
+
+          drag = null;
+          updateOverlapClasses();
+          saveState();
+        }
+
+        function onKeyDown(event) {
+          const activeTag = document.activeElement ? document.activeElement.tagName : "";
+
+          if (activeTag === "INPUT") {
+            return;
+          }
+
+          if (event.key === "Delete" || event.key === "Backspace") {
+            deleteSelectedRectangle();
+            event.preventDefault();
+            return;
+          }
+
+          const movement = {
+            ArrowLeft: [-1, 0],
+            ArrowRight: [1, 0],
+            ArrowUp: [0, -1],
+            ArrowDown: [0, 1]
+          }[event.key];
+
+          if (movement) {
+            moveSelectedBy(movement[0], movement[1]);
+            event.preventDefault();
+          }
+        }
+
+        elements.addRect.addEventListener("click", addRectangle);
+        elements.duplicateRect.addEventListener("click", duplicateSelectedRectangle);
+        elements.deleteRect.addEventListener("click", deleteSelectedRectangle);
+        elements.clearLayout.addEventListener("click", clearLayout);
+
+        [elements.columns, elements.rows, elements.cellSize].forEach((field) => {
+          field.addEventListener("input", updateBoardFromForm);
+        });
+
+        elements.rectName.addEventListener("input", updateSelectedName);
+        geometryFields.forEach((field) => {
+          field.addEventListener("input", updateSelectedGeometryFromForm);
+        });
+
+        elements.grid.addEventListener("pointerdown", onPointerDown);
+        elements.grid.addEventListener("pointermove", onPointerMove);
+        elements.grid.addEventListener("pointerup", endDrag);
+        elements.grid.addEventListener("pointercancel", endDrag);
+        document.addEventListener("keydown", onKeyDown);
+
+        renderBoard();
+        renderRectangles();
+        syncSelectedForm();
+      })();
+    </script>
+  </body>
+</html>
