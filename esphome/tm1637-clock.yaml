@@ -1,0 +1,103 @@
+substitutions:
+  name: tm1637-clock
+  friendly_name: "TM1637 Clock"
+  # ESP32-S3 DevKitC-1 N16R8-class board: 16 MB flash with 8 MB octal PSRAM.
+  # If your module is marked differently, keep the S3-safe display pins below
+  # but adjust the esp32 board/flash/psram settings to match that module.
+  # Six-digit TM1637 module. Power from 3.3 V unless the module's pull-ups and
+  # signal levels are known to be ESP32-safe at 5 V.
+  tm1637_clk_pin: GPIO16
+  tm1637_dio_pin: GPIO17
+  display_intensity: "5"
+  startup_ip_debug_seconds: "8"
+  ip_group_display_seconds: "2"
+
+packages:
+  network: !include shared/network.yaml
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+
+esp32:
+  board: esp32-s3-devkitc1-n16r8
+  flash_size: 16MB
+  framework:
+    type: esp-idf
+
+logger:
+
+display:
+  - platform: tm1637
+    id: tm1637_display
+    clk_pin: ${tm1637_clk_pin}
+    dio_pin: ${tm1637_dio_pin}
+    intensity: ${display_intensity}
+    inverted: false
+    length: 6
+    update_interval: 500ms
+    lambda: |-
+      const uint32_t STARTUP_IP_DEBUG_MS = ${startup_ip_debug_seconds} * 1000UL;
+      const uint32_t IP_GROUP_MS = ${ip_group_display_seconds} * 1000UL;
+
+      static uint32_t wifi_connected_at = 0;
+      static bool ip_groups_ready = false;
+      static char ip_group_1[7] = "000000";
+      static char ip_group_2[7] = "000000";
+
+      auto print_mapped = [&](const char *logical) {
+        // This display wires each three-digit bank in reverse order.
+        char mapped[7] = {
+          logical[2],
+          logical[1],
+          logical[0],
+          logical[5],
+          logical[4],
+          logical[3],
+          '\0',
+        };
+        it.print(mapped);
+      };
+
+      uint32_t now_ms = millis();
+      if (!esphome::wifi::global_wifi_component->is_connected()) {
+        wifi_connected_at = 0;
+        ip_groups_ready = false;
+        print_mapped("------");
+        return;
+      }
+
+      if (wifi_connected_at == 0) {
+        wifi_connected_at = now_ms;
+        ip_groups_ready = false;
+      }
+
+      if (!ip_groups_ready) {
+        auto addresses = esphome::wifi::global_wifi_component->wifi_sta_ip_addresses();
+        if (addresses[0].is_set() && addresses[0].is_ip4()) {
+          char ip_text[esphome::network::IP_ADDRESS_BUFFER_SIZE];
+          int octets[4] = {0, 0, 0, 0};
+          addresses[0].str_to(ip_text);
+          if (sscanf(ip_text, "%d.%d.%d.%d", &octets[0], &octets[1], &octets[2], &octets[3]) == 4) {
+            for (int i = 0; i < 4; i++) {
+              if (octets[i] < 0) octets[i] = 0;
+              if (octets[i] > 255) octets[i] = 255;
+            }
+            snprintf(ip_group_1, sizeof(ip_group_1), "%03d%03d", octets[0], octets[1]);
+            snprintf(ip_group_2, sizeof(ip_group_2), "%03d%03d", octets[2], octets[3]);
+            ip_groups_ready = true;
+          }
+        }
+      }
+
+      auto now = id(ntp_time).now();
+      bool show_startup_ip = now_ms - wifi_connected_at < STARTUP_IP_DEBUG_MS;
+      if (!now.is_valid() || show_startup_ip) {
+        uint32_t group_index = ((now_ms - wifi_connected_at) / IP_GROUP_MS) % 2;
+        print_mapped(group_index == 0 ? ip_group_1 : ip_group_2);
+        return;
+      }
+
+      char time_text[7];
+      snprintf(time_text, sizeof(time_text), "%02d%02d%02d", now.hour, now.minute, now.second);
+      print_mapped(time_text);

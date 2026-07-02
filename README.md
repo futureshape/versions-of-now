@@ -93,6 +93,20 @@ LCD, with a small `SWATCH INTERNET TIME` label. See
 `docs/PCD8544_SWATCH_INTERNET_TIME_CLOCK.md` for hardware, font, and beat
 calculation notes.
 
+### TM1637 6-Digit Clock
+
+- ESPHome config: `esphome/tm1637-clock.yaml`
+- Controller: ESP32-S3 DevKitC-1 N16R8-class board
+- Display platform: `tm1637`
+- Time source: NTP via shared ESPHome config
+- Home Assistant: intentionally not configured
+
+The display shows local `HHMMSS` time on a six-digit TM1637 seven-segment LED
+module, with dots left unused. It targets an ESP32-S3 board with 16 MB flash and
+octal PSRAM. On startup it shows the assigned IPv4 address as two zero-padded
+six-digit screens. See `docs/TM1637_6_DIGIT_CLOCK.md` for wiring and
+startup-display notes.
+
 ### Flip Digits Clock
 
 - ESPHome config: `esphome/flpidigits-clock.yaml`
