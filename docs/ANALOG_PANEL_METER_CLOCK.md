@@ -2,18 +2,20 @@
 
 ESPHome config: `esphome/analog-panel-meter-clock.yaml`
 
-This clock drives two analog panel meters from an MCP4728 quad DAC. The hour
-meter uses channel A and the minute meter uses channel B; channels C and D are
-left unused.
+This clock drives two analog panel meters from an MCP4728 quad DAC using an
+ESP32-S3 DevKitC-1 N16R8-class board. The hour meter uses channel A and the
+minute meter uses channel B; channels C and D are left unused.
 
 ## Hardware
 
-- Controller: ESP32 DevKit-style board.
+- Controller: ESP32-S3 DevKitC-1 N16R8-class board.
+- ESPHome board profile: `esp32-s3-devkitc1-n16r8`, with 16 MB flash and
+  8 MB octal PSRAM.
 - DAC: MCP4728 on I2C address `0x60`.
-- I2C pins: GPIO21 SDA, GPIO22 SCL by default.
+- I2C pins: GPIO8 SDA, GPIO9 SCL by default.
 - Meter outputs: MCP4728 channel A for hours, channel B for minutes.
 - Output span: 0-5 V when the MCP4728 VDD/reference is a regulated 5 V supply.
-- Status LED: GPIO2, if the ESP32 board exposes a controllable LED there.
+- Status LED: optional external LED on GPIO2.
 
 Tie the ESP32 ground, MCP4728 ground, and panel-meter signal ground together.
 The ESP32 I2C pins are 3.3 V logic; if the DAC is powered at 5 V, use a proper
@@ -23,6 +25,15 @@ while producing a 5 V DAC span.
 Panel meters should be high-impedance voltage inputs. If a meter loads the DAC
 output enough to affect the reading, add a buffer stage between the MCP4728 and
 the meter.
+
+GPIO8 and GPIO9 are chosen as general-purpose ESP32-S3 pins. Avoid moving I2C
+to strapping pins, USB-Serial-JTAG pins, or flash/PSRAM pins unless the
+hardware has been checked.
+
+Runtime logging is pinned to `UART0` at 115200 baud so ESPHome logs appear on
+the same serial connection that shows the ESP32-S3 ROM boot messages. Without
+that explicit setting, ESPHome may route application logs to USB-Serial-JTAG on
+S3 boards instead.
 
 ## Time Mapping
 

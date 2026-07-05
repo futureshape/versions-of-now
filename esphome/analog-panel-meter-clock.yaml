@@ -1,14 +1,15 @@
 substitutions:
   name: analog-panel-meter-clock
   friendly_name: "Analog Panel Meter Clock"
-  # ESP32-DevKitC V4 / classic ESP32 I2C pins.
-  i2c_sda_pin: GPIO21
-  i2c_scl_pin: GPIO22
+  # ESP32-S3 DevKitC-1 N16R8-class board: 16 MB flash with 8 MB octal PSRAM.
+  # GPIO8/GPIO9 are general-purpose S3 pins kept away from USB, strapping, and
+  # flash/PSRAM pins.
+  i2c_sda_pin: GPIO8
+  i2c_scl_pin: GPIO9
   mcp4728_address: "0x60"
   meter_update_interval: 100ms
-  # Many ESP32 DevKitC-style boards/clones use GPIO2 for a controllable blue LED.
-  # Official Espressif DevKitC V4 boards may only have a power LED; in that case
-  # move this to an external LED pin or remove the status_led block.
+  # Optional external status LED. ESP32-S3 DevKitC-1 boards often have an
+  # addressable RGB LED instead of a simple GPIO LED.
   status_led_pin: GPIO2
 
 packages:
@@ -19,17 +20,21 @@ esphome:
   friendly_name: "${friendly_name}"
 
 esp32:
-  board: esp32dev
+  board: esp32-s3-devkitc1-n16r8
+  flash_size: 16MB
   framework:
     type: esp-idf
 
 logger:
+  # ESP32-S3 defaults can route ESPHome logs to USB_SERIAL_JTAG. UART0 keeps
+  # runtime logs on the same serial path that shows the ROM boot messages.
+  hardware_uart: UART0
+  baud_rate: 115200
 
 status_led:
   pin:
     number: ${status_led_pin}
     inverted: false
-    ignore_strapping_warning: true
 
 i2c:
   sda: ${i2c_sda_pin}
