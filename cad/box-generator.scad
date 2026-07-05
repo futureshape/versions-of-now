@@ -45,6 +45,15 @@ front_cutout_height = 30;
 // for a through-hole in the front face.
 front_cutout_depth = front_thickness;
 
+// Add two loose M4 clearance holes to the left and right of the cutout
+cutout_side_holes_enabled = true;
+
+// Distance from each cutout side edge to the adjacent hole center
+cutout_side_hole_center_offset = 5;
+
+// Loose M4 clearance hole; no threading expected here
+cutout_side_hole_diameter = 4.8;
+
 
 /* [SKADIS grid] */
 
@@ -106,6 +115,16 @@ epsilon = 0.1;
 
 box_width  = holes_x * hole_pitch;
 box_height = holes_y * hole_pitch;
+
+front_cutout_left_x = (box_width - front_cutout_width) / 2;
+front_cutout_right_x = (box_width + front_cutout_width) / 2;
+front_cutout_center_y = box_height / 2;
+
+cutout_side_hole_left_x =
+    front_cutout_left_x - cutout_side_hole_center_offset;
+
+cutout_side_hole_right_x =
+    front_cutout_right_x + cutout_side_hole_center_offset;
 
 screw_slot_y_offset = max(
     0,
@@ -197,10 +216,31 @@ module mounting_alignment_hole(x, y) {
 }
 
 
+module cutout_side_hole(x) {
+    translate([
+        x,
+        front_cutout_center_y,
+        -epsilon
+    ])
+    cylinder(
+        d = cutout_side_hole_diameter,
+        h = front_thickness + 2 * epsilon
+    );
+}
+
+
+module cutout_side_holes() {
+    if (cutout_side_holes_enabled) {
+        cutout_side_hole(cutout_side_hole_left_x);
+        cutout_side_hole(cutout_side_hole_right_x);
+    }
+}
+
+
 module front_face_cutout() {
     if (front_cutout_enabled) {
         translate([
-            (box_width  - front_cutout_width)  / 2,
+            front_cutout_left_x,
             (box_height - front_cutout_height) / 2,
             -epsilon
         ])
@@ -308,6 +348,7 @@ module skadis_box() {
 
         all_mounting_holes();
         front_face_cutout();
+        cutout_side_holes();
     }
 }
 
@@ -322,6 +363,7 @@ module alignment_test_plate() {
 
         all_mounting_alignment_holes();
         front_face_cutout();
+        cutout_side_holes();
     }
 }
 
@@ -371,6 +413,35 @@ assert(
     !front_cutout_enabled ||
         front_cutout_depth > 0 && front_cutout_depth <= box_depth,
     "front_cutout_depth must be greater than 0 and no deeper than box_depth"
+);
+assert(
+    !cutout_side_holes_enabled || front_cutout_enabled,
+    "cutout_side_holes_enabled requires front_cutout_enabled"
+);
+assert(
+    !cutout_side_holes_enabled || cutout_side_hole_diameter > 0,
+    "cutout_side_hole_diameter must be positive"
+);
+assert(
+    !cutout_side_holes_enabled || cutout_side_hole_center_offset > 0,
+    "cutout_side_hole_center_offset must be positive"
+);
+assert(
+    !cutout_side_holes_enabled ||
+        cutout_side_hole_center_offset >= cutout_side_hole_diameter / 2,
+    "cutout side holes would overlap the front cutout"
+);
+assert(
+    !cutout_side_holes_enabled ||
+        cutout_side_hole_left_x - cutout_side_hole_diameter / 2 >=
+            wall_thickness,
+    "Left cutout side hole would cut into the side wall"
+);
+assert(
+    !cutout_side_holes_enabled ||
+        cutout_side_hole_right_x + cutout_side_hole_diameter / 2 <=
+            box_width - wall_thickness,
+    "Right cutout side hole would cut into the side wall"
 );
 
 if (test_alignment_mode) {
