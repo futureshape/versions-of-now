@@ -2,11 +2,13 @@ substitutions:
   name: oled-pinball-clock
   friendly_name: "OLED Pinball Clock"
   # SSD1322 wiring matches the working gadec-uk/departures-board reference:
-  #   display D0 / CLK / SCLK -> ESP32 GPIO18
-  #   display D1 / DIN / SDIN -> ESP32 GPIO23
-  #   display D/C#          -> ESP32 GPIO5
-  #   display CS#           -> ESP32 GPIO26
-  #   display RESET         -> not connected
+  #   display pin 1 VSS              -> GND
+  #   display pin 2 VCC_IN           -> display power input
+  #   display pin 4 D0 / CLK / SCLK  -> ESP32 GPIO18
+  #   display pin 5 D1 / DIN / SDIN  -> ESP32 GPIO23
+  #   display pin 14 D/C#            -> ESP32 GPIO5
+  #   display pin 16 CS#             -> ESP32 GPIO26
+  #   display RESET                  -> not connected
   # ESP32-DevKitC V4 / classic ESP32 VSPI pins. SSD1322 DIN connects to MOSI.
   spi_clk_pin: GPIO18
   spi_mosi_pin: GPIO23

@@ -11,10 +11,17 @@ a 256x64 SSD1322 OLED over 4-wire SPI.
 - Default board: ESP32 DevKit-style board using ESP32 VSPI pins.
 - Default wiring in `esphome/256x64-oled-pinball-clock.yaml`, matching the
   known-good `gadec-uk/departures-board` SSD1322 wiring:
-  - CLK: GPIO18
-  - DIN/MOSI: GPIO23
-  - DC: GPIO5
-  - CS: GPIO26
+
+| OLED pin | OLED signal | ESP32 connection |
+| --- | --- | --- |
+| 1 | VSS | GND |
+| 2 | VCC_IN | Display power input |
+| 4 | D0/CLK | GPIO18 / SPI CLK |
+| 5 | D1/DIN | GPIO23 / SPI MOSI |
+| 14 | D/C# | GPIO5 |
+| 16 | CS# | GPIO26 |
+
+`RESET` is not connected in the current clock wiring.
 
 Many SSD1322 modules ship configured for 8-bit 80XX mode. This clock assumes
 the module has been changed to 4-wire SPI mode before flashing.

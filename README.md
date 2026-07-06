@@ -57,6 +57,9 @@ library notes.
 - Display platform: `ssd1322_spi`
 - Time source: NTP via shared ESPHome config
 - Home Assistant: intentionally not configured
+- Default display-side wiring: OLED pin 1 `VSS` to GND, pin 2 `VCC_IN` to
+  display power, pin 4 `D0/CLK` to GPIO18, pin 5 `D1/DIN` to GPIO23, pin 14
+  `D/C#` to GPIO5, and pin 16 `CS#` to GPIO26.
 
 The simulator treats the time as a moving bitmap body inside a 256x64 OLED
 framebuffer. The time bounces against the screen edges while floating objects
