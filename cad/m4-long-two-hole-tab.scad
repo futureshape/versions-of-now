@@ -16,7 +16,7 @@
 /* [Box alignment] */
 
 // Copy from box-generator.scad
-front_cutout_width = 60;
+front_cutout_width = 78.8;
 
 // Copy from box-generator.scad
 cutout_side_hole_center_offset = 5;

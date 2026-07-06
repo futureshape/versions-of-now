@@ -37,22 +37,46 @@ front_thickness = 1;
 // Cut a centered rectangle into the print-bed face at Z = 0
 front_cutout_enabled = true;
 
-// Size of the centered cutout on the front face
-front_cutout_width = 60;
-front_cutout_height = 30;
+// Size of the centered cutout on the front face.
+// From the display drawing V.A. dimensions.
+front_cutout_width = 78.8;
+front_cutout_height = 23.81;
 
 // Depth of the cut from the print-bed face. Use front_thickness
 // for a through-hole in the front face.
 front_cutout_depth = front_thickness;
 
 // Add two loose M4 clearance holes to the left and right of the cutout
-cutout_side_holes_enabled = true;
+cutout_side_holes_enabled = false;
 
 // Distance from each cutout side edge to the adjacent hole center
 cutout_side_hole_center_offset = 5;
 
 // Loose M4 clearance hole; no threading expected here
 cutout_side_hole_diameter = 4.8;
+
+
+/* [Display corner holes] */
+
+// Add four display mounting holes around the front cutout.
+// These are asymmetric because many display modules are not centered
+// around their viewing area.
+display_corner_holes_enabled = true;
+
+// Small display mounting hole diameter from the module drawing.
+display_corner_hole_diameter = 2.8;
+
+// Distances from the cutout edges to the display mounting hole centers.
+// Derived from:
+// - PCB width/height: 100.5 x 33.5 mm
+// - V.A.: 78.8 x 23.81 mm
+// - V.A. top margin: 5.10 mm
+// - V.A. right margin: 11.35 mm
+// - Mounting hole centers: X 5.50/95.00 mm, Y 2.50/31.00 mm
+display_corner_hole_left_offset = 4.85;
+display_corner_hole_right_offset = 5.85;
+display_corner_hole_top_offset = 2.60;
+display_corner_hole_bottom_offset = 2.09;
 
 
 /* [SKADIS grid] */
@@ -119,12 +143,26 @@ box_height = holes_y * hole_pitch;
 front_cutout_left_x = (box_width - front_cutout_width) / 2;
 front_cutout_right_x = (box_width + front_cutout_width) / 2;
 front_cutout_center_y = box_height / 2;
+front_cutout_bottom_y = (box_height - front_cutout_height) / 2;
+front_cutout_top_y = (box_height + front_cutout_height) / 2;
 
 cutout_side_hole_left_x =
     front_cutout_left_x - cutout_side_hole_center_offset;
 
 cutout_side_hole_right_x =
     front_cutout_right_x + cutout_side_hole_center_offset;
+
+display_corner_hole_left_x =
+    front_cutout_left_x - display_corner_hole_left_offset;
+
+display_corner_hole_right_x =
+    front_cutout_right_x + display_corner_hole_right_offset;
+
+display_corner_hole_bottom_y =
+    front_cutout_bottom_y - display_corner_hole_bottom_offset;
+
+display_corner_hole_top_y =
+    front_cutout_top_y + display_corner_hole_top_offset;
 
 screw_slot_y_offset = max(
     0,
@@ -237,11 +275,49 @@ module cutout_side_holes() {
 }
 
 
+module display_corner_hole(x, y) {
+    translate([
+        x,
+        y,
+        -epsilon
+    ])
+    cylinder(
+        d = display_corner_hole_diameter,
+        h = front_thickness + 2 * epsilon
+    );
+}
+
+
+module display_corner_holes() {
+    if (display_corner_holes_enabled) {
+        display_corner_hole(
+            display_corner_hole_left_x,
+            display_corner_hole_top_y
+        );
+
+        display_corner_hole(
+            display_corner_hole_right_x,
+            display_corner_hole_top_y
+        );
+
+        display_corner_hole(
+            display_corner_hole_left_x,
+            display_corner_hole_bottom_y
+        );
+
+        display_corner_hole(
+            display_corner_hole_right_x,
+            display_corner_hole_bottom_y
+        );
+    }
+}
+
+
 module front_face_cutout() {
     if (front_cutout_enabled) {
         translate([
             front_cutout_left_x,
-            (box_height - front_cutout_height) / 2,
+            front_cutout_bottom_y,
             -epsilon
         ])
         cube([
@@ -349,6 +425,7 @@ module skadis_box() {
         all_mounting_holes();
         front_face_cutout();
         cutout_side_holes();
+        display_corner_holes();
     }
 }
 
@@ -364,6 +441,7 @@ module alignment_test_plate() {
         all_mounting_alignment_holes();
         front_face_cutout();
         cutout_side_holes();
+        display_corner_holes();
     }
 }
 
@@ -442,6 +520,57 @@ assert(
         cutout_side_hole_right_x + cutout_side_hole_diameter / 2 <=
             box_width - wall_thickness,
     "Right cutout side hole would cut into the side wall"
+);
+assert(
+    !display_corner_holes_enabled || front_cutout_enabled,
+    "display_corner_holes_enabled requires front_cutout_enabled"
+);
+assert(
+    !display_corner_holes_enabled || display_corner_hole_diameter > 0,
+    "display_corner_hole_diameter must be positive"
+);
+assert(
+    !display_corner_holes_enabled ||
+        display_corner_hole_left_offset >=
+            display_corner_hole_diameter / 2,
+    "Left display corner holes would overlap the front cutout"
+);
+assert(
+    !display_corner_holes_enabled ||
+        display_corner_hole_right_offset >=
+            display_corner_hole_diameter / 2,
+    "Right display corner holes would overlap the front cutout"
+);
+
+assert(
+    !display_corner_holes_enabled ||
+        display_corner_hole_bottom_offset >=
+            display_corner_hole_diameter / 2,
+    "Bottom display corner holes would overlap the front cutout"
+);
+assert(
+    !display_corner_holes_enabled ||
+        display_corner_hole_left_x - display_corner_hole_diameter / 2 >=
+            wall_thickness,
+    "Left display corner holes would cut into the side wall"
+);
+assert(
+    !display_corner_holes_enabled ||
+        display_corner_hole_right_x + display_corner_hole_diameter / 2 <=
+            box_width - wall_thickness,
+    "Right display corner holes would cut into the side wall"
+);
+assert(
+    !display_corner_holes_enabled ||
+        display_corner_hole_bottom_y - display_corner_hole_diameter / 2 >=
+            wall_thickness,
+    "Bottom display corner holes would cut into the bottom wall"
+);
+assert(
+    !display_corner_holes_enabled ||
+        display_corner_hole_top_y + display_corner_hole_diameter / 2 <=
+            box_height - wall_thickness,
+    "Top display corner holes would cut into the top wall"
 );
 
 if (test_alignment_mode) {
