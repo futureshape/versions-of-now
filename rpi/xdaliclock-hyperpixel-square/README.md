@@ -121,10 +121,11 @@ without keyboard, mouse, SSH, browser, or website intervention.
 For manual installs, `install.sh` does the following:
 
 - Installs minimal display packages with APT: Xorg, xinit, xauth, X11
-  utilities, GLib's `gsettings` tool, and the Debian `xdaliclock` package.
+  utilities, GLib's `gsettings` tool, X11 core bitmap fonts (`xfonts-base`),
+  and the Debian `xdaliclock` package.
 - Ensures `/boot/firmware/config.txt` contains:
   - `dtoverlay=vc4-kms-v3d`
-  - `dtoverlay=vc4-kms-dpi-hyperpixel4sq`
+  - `dtoverlay=vc4-kms-dpi-hyperpixel4sq,rotate=270`
   - `dtparam=i2c_arm=off`
   - `dtparam=spi=off`
 - Runs `raspi-config nonint do_i2c 1` and `raspi-config nonint do_spi 1` when
@@ -135,6 +136,15 @@ For manual installs, `install.sh` does the following:
 - Masks `getty@tty1` so the display is reserved for the clock.
 - Launches the native app as `xdaliclock --root`, which draws directly on the
   X root window.
+- Defaults to 24-hour time display via `XDALICLOCK_HOURMODE="24"` in
+  `/etc/default/xdaliclock-session`.
+- Applies `xrandr --output DPI-1 --rotate left` at session start to rotate the
+  framebuffer 270 degrees, matching the HyperPixel Square's physical
+  orientation. The DPI overlay's `rotate=270` parameter is not automatically
+  reflected by the modesetting X driver, so both settings are kept in step.
+- Writes `/etc/X11/xorg.conf.d/99-xdaliclock-input.conf` to suppress the
+  HyperPixel's built-in touchscreen in X, preventing incidental taps from
+  triggering xdaliclock's date-display toggle.
 
 For automated SD-card imaging, `image-sd-card.sh` writes `userconf.txt` and an
 empty `ssh` file to the card before first boot. This enables headless SSH and
@@ -204,7 +214,33 @@ XDALICLOCK_BACKGROUND="#00B3B3FF"
 XDALICLOCK_CYCLESPEED="15"
 ```
 
-After editing, apply changes with:
+The HyperPixel kernel overlay accepts a `rotate` parameter:
+
+```sh
+dtoverlay=vc4-kms-dpi-hyperpixel4sq,rotate=270
+```
+
+This sets the panel orientation in the DRM subsystem and correctly orients the
+Linux text console before X starts. However, the modesetting X driver does not
+automatically inherit this rotation, so `xdaliclock-xsession` applies a
+matching xrandr rotation at X startup:
+
+```sh
+xrandr --output DPI-1 --rotate left
+```
+
+Both settings are kept in step. If the physical mount orientation changes,
+update `rotate=…` in `/boot/firmware/config.txt` and change the `--rotate`
+argument in `/usr/local/bin/xdaliclock-xsession` to match:
+
+| `config.txt` `rotate=` | xrandr `--rotate` |
+|------------------------|-------------------|
+| `0`                    | `normal`          |
+| `90`                   | `right`           |
+| `180`                  | `inverted`        |
+| `270`                  | `left`            |
+
+After editing either file, apply changes with:
 
 ```sh
 sudo systemctl restart xdaliclock.service
@@ -219,7 +255,11 @@ a melting digital clock.
 Pimoroni's current guidance for Bullseye and later is to use the built-in
 kernel overlay `vc4-kms-dpi-hyperpixel4sq`, not the legacy installer.
 Raspberry Pi's overlay documentation says this overlay requires `vc4-kms-v3d`,
-so the installer keeps both lines present.
+so the installer keeps both lines present. Raspberry Pi's overlay reference also
+documents `rotate` as a HyperPixel Square overlay parameter. In testing on
+kernel 6.18 with Xorg 1.21, `rotate=270` correctly orients the DRM output for
+the console but is not reflected in `xrandr --query`, so the session script
+applies `xrandr --output DPI-1 --rotate left` independently.
 
 The HyperPixel backlight may remain on after shutdown; Pimoroni recommends
 removing power when the display is not in use.

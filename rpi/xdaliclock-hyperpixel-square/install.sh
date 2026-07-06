@@ -71,6 +71,7 @@ apt_install_display_packages() {
       xauth \
       xinit \
       xserver-xorg \
+      xfonts-base \
       xdaliclock; then
       return
     fi
@@ -107,6 +108,22 @@ ensure_overlay() {
   fi
 }
 
+set_overlay() {
+  local overlay="$1"
+  local params="$2"
+  local line="dtoverlay=${overlay}"
+
+  if [ -n "${params}" ]; then
+    line="${line},${params}"
+  fi
+
+  if grep -Eq "^[[:space:]]*dtoverlay=${overlay}([,[:space:]]|$)" "${BOOT_CONFIG}"; then
+    sed -i -E "s|^[[:space:]]*dtoverlay=${overlay}([,[:space:]].*)?$|${line}|" "${BOOT_CONFIG}"
+  else
+    append_global_config_line "${line}"
+  fi
+}
+
 set_dtparam() {
   local name="$1"
   local value="$2"
@@ -123,7 +140,7 @@ configure_hyperpixel() {
   cp "${BOOT_CONFIG}" "${BOOT_CONFIG}.pre-xdaliclock.$(date +%Y%m%d%H%M%S)"
 
   ensure_overlay "vc4-kms-v3d"
-  ensure_overlay "vc4-kms-dpi-hyperpixel4sq"
+  set_overlay "vc4-kms-dpi-hyperpixel4sq" "rotate=270"
   set_dtparam "i2c_arm" "off"
   set_dtparam "spi" "off"
 
@@ -193,7 +210,7 @@ XDALICLOCK_ARGS="--root"
 #   XDALICLOCK_DATEMODE: MMDDYY, DDMMYY, YYMMDD
 #   XDALICLOCK_FOREGROUND / XDALICLOCK_BACKGROUND: #RRGGBB or #RRGGBBAA
 #   XDALICLOCK_CYCLESPEED: integer
-XDALICLOCK_HOURMODE=""
+XDALICLOCK_HOURMODE="24"
 XDALICLOCK_TIMEMODE=""
 XDALICLOCK_DATEMODE=""
 XDALICLOCK_FOREGROUND=""
@@ -219,7 +236,7 @@ set_pref() {
   local key="$1"
   local value="$2"
 
-  [ -n "${value}" ] || return
+  [ -n "${value}" ] || return 0
 
   if ! command -v gsettings >/dev/null 2>&1; then
     printf 'gsettings is not installed; cannot set xdaliclock %s.\n' "${key}" >&2
@@ -297,6 +314,9 @@ xset s off || true
 xset s noblank || true
 xset -dpms || true
 xsetroot -solid black || true
+# Rotate the framebuffer to match dtoverlay=vc4-kms-dpi-hyperpixel4sq,rotate=270.
+# X does not inherit the DRM-level rotation, so we apply it here.
+xrandr --output DPI-1 --rotate left || true
 
 exec /usr/local/bin/xdaliclock-session
 EOF
@@ -313,6 +333,17 @@ exec /usr/local/bin/xdaliclock-xsession
 EOF
   chmod 0755 "${CLOCK_HOME}/.xinitrc"
   chown -R "${CLOCK_USER}:${CLOCK_USER}" "${CLOCK_HOME}"
+
+  install -d -m 0755 /etc/X11/xorg.conf.d
+  cat >/etc/X11/xorg.conf.d/99-xdaliclock-input.conf <<'EOF'
+# Ignore the HyperPixel built-in touchscreen so that incidental touches do not
+# trigger xdaliclock's date-display toggle.
+Section "InputClass"
+    Identifier "ignore-hyperpixel-touch"
+    MatchProduct "EP0110M09"
+    Option "Ignore" "true"
+EndSection
+EOF
 
   rm -f /etc/systemd/system/getty@tty1.service.d/autologin.conf
 
