@@ -105,10 +105,10 @@ calculation notes.
 - Home Assistant: intentionally not configured
 
 The display shows local `HHMMSS` time on a six-digit TM1637 seven-segment LED
-module, with dots left unused. It targets an ESP32-S3 board with 16 MB flash and
-octal PSRAM. On startup it shows the assigned IPv4 address as two zero-padded
-six-digit screens. See `docs/TM1637_6_DIGIT_CLOCK.md` for wiring and
-startup-display notes.
+module, with dots separating hours, minutes, and seconds. It targets an ESP32-S3
+board with 16 MB flash and octal PSRAM. On startup it shows the assigned IPv4
+address as two zero-padded six-digit screens, with a dot between each octet
+pair. See `docs/TM1637_6_DIGIT_CLOCK.md` for wiring and startup-display notes.
 
 ### Flip Digits Clock
 

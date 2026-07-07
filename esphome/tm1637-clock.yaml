@@ -45,17 +45,26 @@ display:
       static char ip_group_1[7] = "000000";
       static char ip_group_2[7] = "000000";
 
-      auto print_mapped = [&](const char *logical) {
+      auto print_mapped = [&](const char *logical, uint8_t dot_after_mask) {
         // This display wires each three-digit bank in reverse order.
-        char mapped[7] = {
-          logical[2],
-          logical[1],
-          logical[0],
-          logical[5],
-          logical[4],
-          logical[3],
-          '\0',
+        const uint8_t LOGICAL_INDEX_FOR_BUFFER[6] = {
+          2,
+          1,
+          0,
+          5,
+          4,
+          3,
         };
+        char mapped[13];
+        uint8_t cursor = 0;
+        for (uint8_t i = 0; i < 6; i++) {
+          uint8_t logical_index = LOGICAL_INDEX_FOR_BUFFER[i];
+          mapped[cursor++] = logical[logical_index];
+          if (dot_after_mask & (1 << logical_index)) {
+            mapped[cursor++] = '.';
+          }
+        }
+        mapped[cursor] = '\0';
         it.print(mapped);
       };
 
@@ -63,7 +72,7 @@ display:
       if (!esphome::wifi::global_wifi_component->is_connected()) {
         wifi_connected_at = 0;
         ip_groups_ready = false;
-        print_mapped("------");
+        print_mapped("------", 0);
         return;
       }
 
@@ -94,10 +103,10 @@ display:
       bool show_startup_ip = now_ms - wifi_connected_at < STARTUP_IP_DEBUG_MS;
       if (!now.is_valid() || show_startup_ip) {
         uint32_t group_index = ((now_ms - wifi_connected_at) / IP_GROUP_MS) % 2;
-        print_mapped(group_index == 0 ? ip_group_1 : ip_group_2);
+        print_mapped(group_index == 0 ? ip_group_1 : ip_group_2, 1 << 2);
         return;
       }
 
       char time_text[7];
       snprintf(time_text, sizeof(time_text), "%02d%02d%02d", now.hour, now.minute, now.second);
-      print_mapped(time_text);
+      print_mapped(time_text, (1 << 1) | (1 << 3));

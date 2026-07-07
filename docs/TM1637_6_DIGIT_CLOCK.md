@@ -4,7 +4,7 @@ ESPHome config: `esphome/tm1637-clock.yaml`
 
 This clock uses a six-digit TM1637 seven-segment module driven directly from an
 ESP32-S3 DevKitC-1 N16R8-class board. It shows local NTP time as `HHMMSS`; dots
-and colon LEDs are intentionally left unused for now.
+separate hours, minutes, and seconds.
 
 The ESPHome board profile is `esp32-s3-devkitc1-n16r8`, with 16 MB flash and
 8 MB octal PSRAM configured explicitly. If the installed module has a different
@@ -34,11 +34,12 @@ Use level shifting or confirm the board's pull-up arrangement before using 5 V.
 While Wi-Fi is disconnected, the display shows six dashes.
 
 After Wi-Fi connects, the assigned IPv4 address is shown as two six-digit
-screens with each octet zero-padded to three digits:
+screens with each octet zero-padded to three digits and a dot between the two
+octets:
 
-- `192.168.1.42` screen 1: `192168`
-- `192.168.1.42` screen 2: `001042`
+- `192.168.1.42` screen 1: `192.168`
+- `192.168.1.42` screen 2: `001.042`
 
 The IP screens cycle during the startup debug window and continue if SNTP time
 is not valid yet. Once local time is valid and the startup window has elapsed,
-the display switches to `HHMMSS`.
+the display switches to `HH.MM.SS`.
