@@ -121,6 +121,13 @@ screw_leadin_depth = 1.5;
 // pegboard alignment test.
 test_alignment_mode = false;
 
+// Print only a small plate with the display cutout and display
+// mounting holes for a quick display fit test.
+test_display_mode = false;
+
+// Extra material around the display cutout and holes in test_display_mode
+test_display_plate_margin = 5;
+
 $fn = 48;
 epsilon = 0.1;
 
@@ -164,6 +171,42 @@ display_corner_hole_bottom_y =
 display_corner_hole_top_y =
     front_cutout_top_y + display_corner_hole_top_offset;
 
+display_corner_hole_radius = display_corner_hole_diameter / 2;
+
+display_feature_left_x = display_corner_holes_enabled
+    ? min(front_cutout_left_x,
+        display_corner_hole_left_x - display_corner_hole_radius)
+    : front_cutout_left_x;
+
+display_feature_right_x = display_corner_holes_enabled
+    ? max(front_cutout_right_x,
+        display_corner_hole_right_x + display_corner_hole_radius)
+    : front_cutout_right_x;
+
+display_feature_bottom_y = display_corner_holes_enabled
+    ? min(front_cutout_bottom_y,
+        display_corner_hole_bottom_y - display_corner_hole_radius)
+    : front_cutout_bottom_y;
+
+display_feature_top_y = display_corner_holes_enabled
+    ? max(front_cutout_top_y,
+        display_corner_hole_top_y + display_corner_hole_radius)
+    : front_cutout_top_y;
+
+display_test_plate_left_x =
+    display_feature_left_x - test_display_plate_margin;
+
+display_test_plate_bottom_y =
+    display_feature_bottom_y - test_display_plate_margin;
+
+display_test_plate_width =
+    display_feature_right_x - display_feature_left_x +
+        2 * test_display_plate_margin;
+
+display_test_plate_height =
+    display_feature_top_y - display_feature_bottom_y +
+        2 * test_display_plate_margin;
+
 screw_slot_y_offset = max(
     0,
     (skadis_slot_height - screw_leadin_diameter) / 2 -
@@ -180,6 +223,15 @@ function mounting_y(row) =
         ? box_height / 2
         : edge_margin + row * hole_pitch +
             (row == 0 ? -screw_slot_y_offset : screw_slot_y_offset);
+
+
+function square(value) =
+    value * value;
+
+
+function distance_sq_to_front_cutout(x, y) =
+    square(max(max(front_cutout_left_x - x, x - front_cutout_right_x), 0)) +
+    square(max(max(front_cutout_bottom_y - y, y - front_cutout_top_y), 0));
 
 
 module outer_shell() {
@@ -446,6 +498,25 @@ module alignment_test_plate() {
 }
 
 
+module display_test_plate() {
+    difference() {
+        translate([
+            display_test_plate_left_x,
+            display_test_plate_bottom_y,
+            0
+        ])
+        cube([
+            display_test_plate_width,
+            display_test_plate_height,
+            front_thickness
+        ]);
+
+        front_face_cutout();
+        display_corner_holes();
+    }
+}
+
+
 assert(holes_x >= 1, "holes_x must be at least 1");
 assert(holes_y >= 1, "holes_y must be at least 1");
 assert(
@@ -463,6 +534,18 @@ assert(
 assert(
     slot_end_safety_margin >= 0,
     "slot_end_safety_margin must not be negative"
+);
+assert(
+    test_display_plate_margin >= 0,
+    "test_display_plate_margin must not be negative"
+);
+assert(
+    !test_display_mode || front_cutout_enabled,
+    "test_display_mode requires front_cutout_enabled"
+);
+assert(
+    !test_display_mode || display_corner_holes_enabled,
+    "test_display_mode requires display_corner_holes_enabled"
 );
 assert(
     holes_y == 1 ||
@@ -531,49 +614,64 @@ assert(
 );
 assert(
     !display_corner_holes_enabled ||
-        display_corner_hole_left_offset >=
-            display_corner_hole_diameter / 2,
-    "Left display corner holes would overlap the front cutout"
+        distance_sq_to_front_cutout(
+            display_corner_hole_left_x,
+            display_corner_hole_top_y
+        ) >= square(display_corner_hole_radius),
+    "Top-left display corner hole would overlap the front cutout"
 );
 assert(
     !display_corner_holes_enabled ||
-        display_corner_hole_right_offset >=
-            display_corner_hole_diameter / 2,
-    "Right display corner holes would overlap the front cutout"
-);
-
-assert(
-    !display_corner_holes_enabled ||
-        display_corner_hole_bottom_offset >=
-            display_corner_hole_diameter / 2,
-    "Bottom display corner holes would overlap the front cutout"
+        distance_sq_to_front_cutout(
+            display_corner_hole_right_x,
+            display_corner_hole_top_y
+        ) >= square(display_corner_hole_radius),
+    "Top-right display corner hole would overlap the front cutout"
 );
 assert(
     !display_corner_holes_enabled ||
-        display_corner_hole_left_x - display_corner_hole_diameter / 2 >=
+        distance_sq_to_front_cutout(
+            display_corner_hole_left_x,
+            display_corner_hole_bottom_y
+        ) >= square(display_corner_hole_radius),
+    "Bottom-left display corner hole would overlap the front cutout"
+);
+assert(
+    !display_corner_holes_enabled ||
+        distance_sq_to_front_cutout(
+            display_corner_hole_right_x,
+            display_corner_hole_bottom_y
+        ) >= square(display_corner_hole_radius),
+    "Bottom-right display corner hole would overlap the front cutout"
+);
+assert(
+    !display_corner_holes_enabled ||
+        display_corner_hole_left_x - display_corner_hole_radius >=
             wall_thickness,
     "Left display corner holes would cut into the side wall"
 );
 assert(
     !display_corner_holes_enabled ||
-        display_corner_hole_right_x + display_corner_hole_diameter / 2 <=
+        display_corner_hole_right_x + display_corner_hole_radius <=
             box_width - wall_thickness,
     "Right display corner holes would cut into the side wall"
 );
 assert(
     !display_corner_holes_enabled ||
-        display_corner_hole_bottom_y - display_corner_hole_diameter / 2 >=
+        display_corner_hole_bottom_y - display_corner_hole_radius >=
             wall_thickness,
     "Bottom display corner holes would cut into the bottom wall"
 );
 assert(
     !display_corner_holes_enabled ||
-        display_corner_hole_top_y + display_corner_hole_diameter / 2 <=
+        display_corner_hole_top_y + display_corner_hole_radius <=
             box_height - wall_thickness,
     "Top display corner holes would cut into the top wall"
 );
 
-if (test_alignment_mode) {
+if (test_display_mode) {
+    display_test_plate();
+} else if (test_alignment_mode) {
     alignment_test_plate();
 } else {
     skadis_box();
