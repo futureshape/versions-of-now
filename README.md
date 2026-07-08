@@ -128,8 +128,8 @@ driven through a MAX485-based TTL serial to RS485 transceiver. See
 - Time source: NTP via shared ESPHome config
 - Home Assistant: intentionally not configured
 
-The hour meter uses MCP4728 channel A and moves as a continuous 12-hour clock
-hand, including minute and second progress. The minute meter uses channel B and
+The hour meter uses MCP4728 channel A and moves continuously around a 24-hour
+dial, including minute and second progress. The minute meter uses channel B and
 moves continuously through each hour. See
 `docs/ANALOG_PANEL_METER_CLOCK.md` for wiring, calibration, and DAC-resolution
 notes.

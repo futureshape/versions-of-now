@@ -37,10 +37,10 @@ S3 boards instead.
 
 ## Time Mapping
 
-The hour meter behaves like a 12-hour analog clock hand:
+The hour meter behaves like a 24-hour analog clock hand:
 
 ```text
-((hour mod 12) * 3600 + minute * 60 + second + fraction) / 43200
+(hour * 3600 + minute * 60 + second + fraction) / 86400
 ```
 
 The minute meter behaves like a minute hand:
@@ -55,11 +55,11 @@ writes only when the calculated 12-bit DAC code changes.
 
 With a full 0-5 V span, the MCP4728's 12-bit output gives about one new minute
 meter DAC step every 0.88 seconds, and about one new hour meter DAC step every
-10.55 seconds. The update interval is 100 ms so the firmware catches each
+21.10 seconds. The update interval is 100 ms so the firmware catches each
 available DAC step promptly without churning the I2C bus unnecessarily.
 
-Both meters wrap to zero at the top of their cycle, just like clock hands
-passing 12.
+The hour meter wraps to zero at midnight, and the minute meter wraps to zero at
+the top of each hour.
 
 ## Startup And Controls
 

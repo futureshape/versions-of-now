@@ -173,7 +173,7 @@ interval:
       - lambda: |-
           static const int DAC_MAX_CODE = 4095;
           static const int SECONDS_PER_HOUR = 3600;
-          static const int SECONDS_PER_12_HOURS = 12 * SECONDS_PER_HOUR;
+          static const int SECONDS_PER_DAY = 24 * SECONDS_PER_HOUR;
 
           auto clamp01 = [](float value) -> float {
             if (value < 0.0f) return 0.0f;
@@ -271,9 +271,9 @@ interval:
           if (elapsed_ms > 999) elapsed_ms = 999;
           float fractional_second = (float) elapsed_ms / 1000.0f;
 
-          int hour_second = time_second % SECONDS_PER_12_HOURS;
+          int hour_second = time_second % SECONDS_PER_DAY;
           int minute_second = time_second % SECONDS_PER_HOUR;
-          float hour_phase = ((float) hour_second + fractional_second) / (float) SECONDS_PER_12_HOURS;
+          float hour_phase = ((float) hour_second + fractional_second) / (float) SECONDS_PER_DAY;
           float minute_phase = ((float) minute_second + fractional_second) / (float) SECONDS_PER_HOUR;
 
           write_meters(hour_phase, minute_phase);
