@@ -1,0 +1,27 @@
+{
+    "parameterSets": {
+        "panelmeter": {
+            "$fn": "48",
+            "boss_diameter": "11",
+            "box_depth": "45",
+            "cutout_spacing": "28",
+            "epsilon": "0.1",
+            "front_cutout_height": "48",
+            "front_cutout_width": "88",
+            "front_thickness": "1",
+            "hole_pitch": "40",
+            "holes_x": "4",
+            "holes_y": "4",
+            "screw_engagement": "10",
+            "screw_leadin_depth": "1.5",
+            "screw_leadin_diameter": "4.3",
+            "screw_pilot_diameter": "3.4",
+            "skadis_slot_height": "15",
+            "slot_end_safety_margin": "1",
+            "wall_thickness": "2"
+        }
+    },
+    "parameterSets": "",
+    "parameterSets": "",
+    "fileFormatVersion": "1"
+}
