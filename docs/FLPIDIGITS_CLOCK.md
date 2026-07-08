@@ -38,7 +38,7 @@ time logic.
 
 ## Defaults
 
-- Baud rate: `9600`
+- Baud rate: `57600`
 - Left-to-right digit addresses: `0`, `1`, `2`, `3`
 - UART pins: `GPIO17` TX and `GPIO16` RX
 - Time source: shared SNTP config
@@ -46,9 +46,13 @@ time logic.
 Startup diagnostics are intentionally compact because the display can only show
 digits and segment patterns:
 
-- `----`: Wi-Fi is still connecting.
-- `0000`: Wi-Fi is connected, but SNTP time is not valid yet.
-- Current `HHMM`: valid local time is available.
+- `0123`: addressed module check. Each digit is commanded by its own address and
+  should show that address.
+- `----`: Wi-Fi is still connecting or no IPv4 address is available yet.
+- ` 192`, ` 168`, ` 001`, etc.: IPv4 octets rotate one at a time with the first
+  digit blank and the octet zero-padded across the remaining three digits. The
+  clock keeps rotating the IP address until SNTP time is valid.
+- Current `HHMM`: valid local time is available after the startup IP display.
 
 The ESPHome web server exposes controls to refresh the display, show all
 segments, show dashes, and blank/re-enable the display.

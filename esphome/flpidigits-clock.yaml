@@ -5,7 +5,10 @@ substitutions:
   # ESP32 RX to the transceiver board TXD.
   rs485_tx_pin: GPIO17
   rs485_rx_pin: GPIO16
-  rs485_baud_rate: "9600"
+  rs485_baud_rate: "57600"
+  startup_address_seconds: "5"
+  startup_ip_debug_seconds: "12"
+  ip_octet_display_seconds: "2"
   # FlipDigitSSB addresses for HH:MM from left to right. Address 255 is the
   # broadcast address per the protocol document, so keep digit addresses 0..254.
   hours_tens_address: "0"
@@ -111,6 +114,10 @@ interval:
   - interval: 1s
     then:
       - lambda: |-
+          const uint32_t STARTUP_ADDRESS_MS = ${startup_address_seconds} * 1000UL;
+          const uint32_t STARTUP_IP_DEBUG_MS = ${startup_ip_debug_seconds} * 1000UL;
+          const uint32_t IP_OCTET_MS = ${ip_octet_display_seconds} * 1000UL;
+
           static const uint8_t DIGIT_ADDRESSES[4] = {
             ${hours_tens_address},
             ${hours_ones_address},
@@ -137,6 +144,13 @@ interval:
           const uint8_t SEGMENT_BLANK = 0x00;
           const uint8_t SEGMENT_DASH = 0x08;
 
+          static uint32_t startup_started_at = 0;
+          static uint32_t wifi_connected_at = 0;
+          static uint32_t ip_display_started_at = 0;
+          static bool ip_octets_ready = false;
+          static bool ip_debug_complete = false;
+          static int ip_octets[4] = {0, 0, 0, 0};
+
           uint8_t patterns[4] = {
             SEGMENT_BLANK,
             SEGMENT_BLANK,
@@ -151,7 +165,36 @@ interval:
             }
           };
 
+          auto set_startup_address_digits = [&]() {
+            for (uint8_t i = 0; i < 4; i++) {
+              uint8_t address = DIGIT_ADDRESSES[i];
+              patterns[i] = address <= 9 ? SEGMENTS_FOR_DIGIT[address] : SEGMENT_DASH;
+            }
+          };
+
+          auto set_ip_octet = [&](uint8_t octet_index) {
+            int value = ip_octets[octet_index];
+            if (value < 0) value = 0;
+            if (value > 255) value = 255;
+
+            patterns[0] = SEGMENT_BLANK;
+            patterns[1] = SEGMENTS_FOR_DIGIT[value / 100];
+            patterns[2] = SEGMENTS_FOR_DIGIT[(value / 10) % 10];
+            patterns[3] = SEGMENTS_FOR_DIGIT[value % 10];
+          };
+
+          auto set_time = [&](const esphome::ESPTime &now) {
+            patterns[0] = SEGMENTS_FOR_DIGIT[now.hour / 10];
+            patterns[1] = SEGMENTS_FOR_DIGIT[now.hour % 10];
+            patterns[2] = SEGMENTS_FOR_DIGIT[now.minute / 10];
+            patterns[3] = SEGMENTS_FOR_DIGIT[now.minute % 10];
+          };
+
           uint32_t now_ms = millis();
+          if (startup_started_at == 0) {
+            startup_started_at = now_ms;
+          }
+
           bool manual_active = (int32_t) (id(manual_display_until) - now_ms) > 0;
 
           if (!id(display_enabled).state) {
@@ -163,25 +206,64 @@ interval:
           } else if (manual_active && id(manual_display_mode) == 2) {
             display_code = 40002;
             set_all(SEGMENT_DASH);
-          } else if (!esphome::wifi::global_wifi_component->is_connected()) {
-            // Compact startup diagnostic: dashes mean Wi-Fi is still connecting.
+          } else if (now_ms - startup_started_at < STARTUP_ADDRESS_MS) {
+            // Addressed startup check: each module should flip to its own ID.
             id(manual_display_mode) = 0;
+            display_code = 50000;
+            set_startup_address_digits();
+          } else if (!esphome::wifi::global_wifi_component->is_connected()) {
+            id(manual_display_mode) = 0;
+            wifi_connected_at = 0;
+            ip_display_started_at = 0;
+            ip_octets_ready = false;
+            ip_debug_complete = false;
             display_code = 20000;
             set_all(SEGMENT_DASH);
           } else {
             id(manual_display_mode) = 0;
+            if (wifi_connected_at == 0) {
+              wifi_connected_at = now_ms;
+              ip_display_started_at = 0;
+              ip_octets_ready = false;
+              ip_debug_complete = false;
+            }
+
+            if (!ip_octets_ready) {
+              auto addresses = esphome::wifi::global_wifi_component->wifi_sta_ip_addresses();
+              if (addresses[0].is_set() && addresses[0].is_ip4()) {
+                char ip_text[esphome::network::IP_ADDRESS_BUFFER_SIZE];
+                addresses[0].str_to(ip_text);
+                if (sscanf(ip_text, "%d.%d.%d.%d", &ip_octets[0], &ip_octets[1], &ip_octets[2], &ip_octets[3]) == 4) {
+                  for (uint8_t i = 0; i < 4; i++) {
+                    if (ip_octets[i] < 0) ip_octets[i] = 0;
+                    if (ip_octets[i] > 255) ip_octets[i] = 255;
+                  }
+                  ip_octets_ready = true;
+                  ip_display_started_at = now_ms;
+                }
+              }
+            }
+
             auto now = id(ntp_time).now();
-            if (!now.is_valid()) {
-              // Wi-Fi is up but SNTP has not produced a valid local time yet.
+            if (!ip_octets_ready) {
               display_code = 30000;
-              set_all(SEGMENTS_FOR_DIGIT[0]);
+              set_all(SEGMENT_DASH);
+            } else if (!ip_debug_complete || !now.is_valid()) {
+              uint32_t ip_elapsed_ms = now_ms - ip_display_started_at;
+              if (now.is_valid() && ip_elapsed_ms >= STARTUP_IP_DEBUG_MS) {
+                ip_debug_complete = true;
+                int minute_of_day = now.hour * 60 + now.minute;
+                display_code = 10000 + minute_of_day;
+                set_time(now);
+              } else {
+                uint8_t octet_index = (ip_elapsed_ms / IP_OCTET_MS) % 4;
+                display_code = 60000 + octet_index * 1000 + ip_octets[octet_index];
+                set_ip_octet(octet_index);
+              }
             } else {
               int minute_of_day = now.hour * 60 + now.minute;
               display_code = 10000 + minute_of_day;
-              patterns[0] = SEGMENTS_FOR_DIGIT[now.hour / 10];
-              patterns[1] = SEGMENTS_FOR_DIGIT[now.hour % 10];
-              patterns[2] = SEGMENTS_FOR_DIGIT[now.minute / 10];
-              patterns[3] = SEGMENTS_FOR_DIGIT[now.minute % 10];
+              set_time(now);
             }
           }
 
