@@ -1,5 +1,5 @@
 substitutions:
-  name: flpidigits-clock
+  name: flipdigits-clock
   friendly_name: "Flip Digits Clock"
   # ESP32 UART2 defaults. Connect ESP32 TX to the transceiver board RXD and
   # ESP32 RX to the transceiver board TXD.

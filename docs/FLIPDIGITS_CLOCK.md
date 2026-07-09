@@ -1,6 +1,6 @@
 # Flip Digits Clock
 
-ESPHome config: `esphome/flpidigits-clock.yaml`
+ESPHome config: `esphome/flipdigits-clock.yaml`
 
 This clock drives four FlipDigitSSB seven-segment digit controllers as an
 `HH:MM` display over an RS485 bus.

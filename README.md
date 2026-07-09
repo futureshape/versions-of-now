@@ -112,7 +112,7 @@ pair. See `docs/TM1637_6_DIGIT_CLOCK.md` for wiring and startup-display notes.
 
 ### Flip Digits Clock
 
-- ESPHome config: `esphome/flpidigits-clock.yaml`
+- ESPHome config: `esphome/flipdigits-clock.yaml`
 - Display platform: four FlipDigitSSB seven-segment controllers over RS485
 - Time source: NTP via shared ESPHome config
 - Home Assistant: intentionally not configured
@@ -120,7 +120,7 @@ pair. See `docs/TM1637_6_DIGIT_CLOCK.md` for wiring and startup-display notes.
 The display shows local `HHMM` time on four flip-digit seven-segment modules
 driven through a MAX485-based TTL serial to RS485 transceiver at 57600 baud. On
 startup it shows the addressed `0123` module check, rotates the IPv4 octets with
-the first digit blank, then shows local `HHMM`. See `docs/FLPIDIGITS_CLOCK.md`
+the first digit blank, then shows local `HHMM`. See `docs/FLIPDIGITS_CLOCK.md`
 for protocol, wiring, and address notes.
 
 ### Analog Panel Meter Clock
@@ -166,8 +166,8 @@ HyperPixel driver notes.
 
 - Raspberry Pi install: `rpi/speaking-clock/`
 - Output: system audio output for a vintage telephone handset headset
-- Runtime: Python standard library, `espeak-ng`, and ALSA on Raspberry Pi;
-  built-in `say` and `afplay` on macOS for testing
+- Runtime: Python standard library, Piper local neural text-to-speech, and ALSA
+  on Raspberry Pi; built-in `say` and `afplay` on macOS for testing
 - Time source: system clock synchronized by the OS, with the Pi service waiting
   for NTP sync before announcing
 
