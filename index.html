@@ -1,0 +1,1566 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+      name="description"
+      content="Versions of Now is a public clock installation showing the same moment rendered across many display technologies."
+    >
+    <title>Versions of Now</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #121614;
+        --ink-soft: #3f4944;
+        --muted: #66726c;
+        --paper: #f7f8f6;
+        --surface: #ffffff;
+        --surface-quiet: #eef4f0;
+        --line: #d7dfd9;
+        --line-strong: #aab8af;
+        --night: #101512;
+        --night-2: #18201c;
+        --green: #1f7a5d;
+        --teal: #0f766e;
+        --amber: #c6821d;
+        --copper: #a94f33;
+        --red: #b13d48;
+        --blue: #23688b;
+        --violet: #5d5f94;
+        --link: #0d655d;
+        --shadow: rgba(18, 22, 20, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.55;
+        letter-spacing: 0;
+      }
+
+      a {
+        color: var(--link);
+        text-decoration-thickness: 0.08em;
+        text-underline-offset: 0.18em;
+      }
+
+      a:hover {
+        color: var(--copper);
+      }
+
+      h1,
+      h2,
+      h3,
+      p,
+      figure {
+        margin: 0;
+      }
+
+      h1,
+      h2,
+      h3 {
+        line-height: 1.05;
+        letter-spacing: 0;
+      }
+
+      h1 {
+        max-width: 760px;
+        color: #f9fff9;
+        font-size: 5.8rem;
+        font-weight: 780;
+      }
+
+      h2 {
+        font-size: 2.5rem;
+      }
+
+      h3 {
+        font-size: 1.58rem;
+      }
+
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+        font-size: 0.92em;
+      }
+
+      .site-nav {
+        position: absolute;
+        top: 18px;
+        right: 18px;
+        z-index: 4;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 10px;
+      }
+
+      .site-nav a {
+        min-height: 36px;
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        border-radius: 999px;
+        padding: 6px 12px;
+        background: rgba(16, 21, 18, 0.72);
+        color: #f9fff9;
+        text-decoration: none;
+      }
+
+      .site-nav a:hover {
+        border-color: rgba(255, 255, 255, 0.44);
+        background: rgba(16, 21, 18, 0.9);
+      }
+
+      .hero {
+        position: relative;
+        min-height: 82svh;
+        overflow: hidden;
+        display: grid;
+        align-items: end;
+        background: var(--night);
+        color: #f9fff9;
+      }
+
+      .hero::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(90deg, rgba(16, 21, 18, 0.94), rgba(16, 21, 18, 0.68) 48%, rgba(16, 21, 18, 0.3)),
+          linear-gradient(0deg, rgba(16, 21, 18, 0.82), transparent 38%);
+        pointer-events: none;
+      }
+
+      .hero-scene {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        grid-template-columns: repeat(6, minmax(120px, 1fr));
+        grid-auto-rows: minmax(150px, 1fr);
+        gap: 1px;
+        background: #2a332e;
+      }
+
+      .hero-clock {
+        position: relative;
+        min-width: 0;
+        overflow: hidden;
+        display: grid;
+        align-content: end;
+        gap: 8px;
+        padding: 16px;
+        background: var(--night-2);
+        isolation: isolate;
+      }
+
+      .hero-clock::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        opacity: 0.88;
+        z-index: -1;
+      }
+
+      .hero-clock strong {
+        color: rgba(249, 255, 249, 0.86);
+        font-size: 0.8rem;
+        font-weight: 720;
+      }
+
+      .clock-time {
+        color: #ffffff;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+        font-size: 1.35rem;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .hero-clock.matrix::before {
+        background:
+          radial-gradient(circle, rgba(255, 88, 48, 0.92) 0 20%, transparent 23%) 0 0 / 18px 18px,
+          #140e0c;
+      }
+
+      .hero-clock.crt::before {
+        background:
+          repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 4px),
+          radial-gradient(circle at 50% 44%, rgba(245, 251, 255, 0.42), transparent 30%),
+          #050706;
+      }
+
+      .hero-clock.oled::before {
+        background:
+          radial-gradient(circle at 22% 32%, rgba(71, 221, 171, 0.98) 0 2px, transparent 3px),
+          radial-gradient(circle at 74% 18%, rgba(255, 183, 74, 0.88) 0 2px, transparent 3px),
+          radial-gradient(circle at 59% 70%, rgba(71, 221, 171, 0.5) 0 3px, transparent 4px),
+          #020403;
+      }
+
+      .hero-clock.epaper::before {
+        background:
+          repeating-linear-gradient(8deg, rgba(18, 22, 20, 0.05) 0 1px, transparent 1px 10px),
+          #e7e5da;
+      }
+
+      .hero-clock.epaper strong,
+      .hero-clock.epaper .clock-time {
+        color: #111;
+      }
+
+      .hero-clock.vfd::before {
+        background:
+          radial-gradient(circle at 48% 54%, rgba(73, 235, 219, 0.22), transparent 46%),
+          #061514;
+      }
+
+      .hero-clock.vfd .clock-time {
+        color: #55f5e8;
+        text-shadow: 0 0 12px rgba(85, 245, 232, 0.58);
+      }
+
+      .hero-clock.meter::before {
+        background:
+          radial-gradient(circle at 30% 62%, transparent 0 38px, rgba(255, 255, 255, 0.32) 39px 40px, transparent 41px),
+          radial-gradient(circle at 70% 62%, transparent 0 38px, rgba(255, 255, 255, 0.32) 39px 40px, transparent 41px),
+          linear-gradient(120deg, rgba(198, 130, 29, 0.34), rgba(31, 122, 93, 0.32)),
+          #1a1711;
+      }
+
+      .hero-content {
+        position: relative;
+        z-index: 2;
+        width: min(1180px, calc(100% - 36px));
+        margin: 0 auto;
+        padding: 120px 0 54px;
+      }
+
+      .eyebrow {
+        margin-bottom: 18px;
+        color: #a9dfcd;
+        font-size: 1.02rem;
+        font-weight: 720;
+      }
+
+      .hero-copy {
+        max-width: 780px;
+        margin-top: 22px;
+        color: rgba(249, 255, 249, 0.9);
+        font-size: 1.18rem;
+      }
+
+      .hero-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 28px;
+      }
+
+      .hero-meta span {
+        display: inline-flex;
+        align-items: center;
+        min-height: 32px;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        border-radius: 999px;
+        padding: 5px 11px;
+        background: rgba(16, 21, 18, 0.64);
+        color: rgba(249, 255, 249, 0.92);
+      }
+
+      .section {
+        padding: 72px 0;
+      }
+
+      .section.alt {
+        background: var(--surface);
+      }
+
+      .wrap {
+        width: min(1180px, calc(100% - 36px));
+        margin: 0 auto;
+      }
+
+      .section-head {
+        display: grid;
+        grid-template-columns: minmax(0, 0.7fr) minmax(260px, 0.9fr);
+        gap: 38px;
+        align-items: end;
+        padding-bottom: 34px;
+      }
+
+      .section-head p {
+        color: var(--ink-soft);
+        font-size: 1.04rem;
+      }
+
+      .summary-strip {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--line);
+      }
+
+      .summary-strip div {
+        min-width: 0;
+        padding: 18px;
+        background: var(--surface);
+      }
+
+      .summary-strip strong {
+        display: block;
+        font-size: 1.55rem;
+        line-height: 1;
+      }
+
+      .summary-strip span {
+        display: block;
+        margin-top: 8px;
+        color: var(--muted);
+      }
+
+      .clock-list {
+        display: grid;
+      }
+
+      .clock {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(320px, 0.72fr);
+        gap: 34px;
+        align-items: center;
+        padding: 46px 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .clock:last-child {
+        border-bottom: 1px solid var(--line);
+      }
+
+      .clock-copy {
+        display: grid;
+        gap: 16px;
+      }
+
+      .clock-kicker {
+        color: var(--muted);
+        font-size: 0.9rem;
+        font-weight: 720;
+      }
+
+      .clock-copy p {
+        color: var(--ink-soft);
+      }
+
+      .tech-tags,
+      .source-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .tech-tags span {
+        display: inline-flex;
+        min-height: 28px;
+        align-items: center;
+        border-radius: 999px;
+        padding: 3px 9px;
+        background: var(--surface-quiet);
+        color: var(--ink-soft);
+        font-size: 0.88rem;
+      }
+
+      .source-links a {
+        display: inline-flex;
+        min-height: 30px;
+        align-items: center;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 4px 10px;
+        background: var(--surface);
+        text-decoration: none;
+        font-size: 0.9rem;
+      }
+
+      .trivia {
+        border-left: 4px solid var(--amber);
+        padding-left: 12px;
+        color: var(--ink-soft);
+      }
+
+      .media-slot {
+        min-height: 300px;
+        overflow: hidden;
+        display: grid;
+        grid-template-rows: minmax(210px, 1fr) auto;
+        border: 1px dashed var(--line-strong);
+        border-radius: 8px;
+        background: var(--surface);
+        box-shadow: 0 14px 38px var(--shadow);
+      }
+
+      .media-art {
+        position: relative;
+        min-height: 220px;
+        overflow: hidden;
+        display: grid;
+        place-items: center;
+        isolation: isolate;
+      }
+
+      .media-art::before,
+      .media-art::after {
+        content: "";
+        position: absolute;
+        pointer-events: none;
+      }
+
+      .media-note {
+        display: grid;
+        gap: 3px;
+        padding: 13px 15px;
+        border-top: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.84);
+      }
+
+      .media-note strong {
+        font-size: 0.94rem;
+      }
+
+      .media-note span {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .art-matrix {
+        background:
+          radial-gradient(circle, rgba(255, 81, 49, 0.22) 0 18%, transparent 21%) 0 0 / 17px 17px,
+          #17100e;
+      }
+
+      .art-matrix::before {
+        inset: 26px;
+        border: 1px solid rgba(255, 110, 70, 0.24);
+        border-radius: 8px;
+        box-shadow: inset 0 0 28px rgba(0, 0, 0, 0.74);
+      }
+
+      .art-matrix .sample {
+        color: #ff6d49;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+        font-size: 2rem;
+        text-shadow: 0 0 18px rgba(255, 109, 73, 0.7);
+      }
+
+      .art-crt {
+        background:
+          repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.07) 0 1px, transparent 1px 4px),
+          #050505;
+      }
+
+      .art-crt::before {
+        left: 50%;
+        top: 50%;
+        width: 164px;
+        height: 164px;
+        border: 9px solid #f6f9fb;
+        border-radius: 50%;
+        box-shadow: 0 0 34px rgba(246, 249, 251, 0.2);
+        transform: translate(-50%, -50%);
+      }
+
+      .art-crt::after {
+        left: 50%;
+        top: 50%;
+        width: 92px;
+        height: 92px;
+        border-left: 7px solid #f6f9fb;
+        border-bottom: 7px solid #f6f9fb;
+        transform: translate(-22%, -34%) rotate(-18deg);
+        transform-origin: bottom left;
+      }
+
+      .art-oled {
+        background: #020403;
+      }
+
+      .art-oled::before {
+        inset: 26px;
+        border: 1px solid rgba(86, 235, 190, 0.26);
+        border-radius: 7px;
+        background:
+          radial-gradient(circle at 18% 28%, rgba(86, 235, 190, 0.8) 0 2px, transparent 3px),
+          radial-gradient(circle at 82% 22%, rgba(242, 169, 71, 0.8) 0 3px, transparent 4px),
+          radial-gradient(circle at 69% 73%, rgba(86, 235, 190, 0.5) 0 3px, transparent 4px),
+          linear-gradient(90deg, rgba(86, 235, 190, 0.13), transparent 34%);
+      }
+
+      .art-oled .sample {
+        color: #77f5cf;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+        font-size: 2.15rem;
+        text-shadow: 0 0 22px rgba(119, 245, 207, 0.72);
+      }
+
+      .art-epaper {
+        background:
+          repeating-linear-gradient(6deg, rgba(22, 26, 24, 0.045) 0 1px, transparent 1px 12px),
+          #ece9dd;
+      }
+
+      .art-epaper::before {
+        inset: 28px;
+        border: 1px solid #b9b4a4;
+        border-radius: 4px;
+        background: #f8f6ec;
+      }
+
+      .art-epaper .sample {
+        position: relative;
+        color: #151515;
+        font-family: "Comic Sans MS", "Bradley Hand", cursive;
+        font-size: 3.2rem;
+        line-height: 1;
+      }
+
+      .art-lcd {
+        background: #d3dcc8;
+      }
+
+      .art-lcd::before {
+        inset: 42px 50px;
+        border: 7px solid #273020;
+        border-radius: 6px;
+        background:
+          repeating-linear-gradient(90deg, rgba(39, 48, 32, 0.08) 0 1px, transparent 1px 7px),
+          #b9c5ae;
+      }
+
+      .art-lcd .sample {
+        position: relative;
+        color: #23301e;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+        font-size: 3rem;
+        font-weight: 800;
+      }
+
+      .art-segment {
+        background:
+          radial-gradient(circle at 50% 40%, rgba(177, 61, 72, 0.18), transparent 42%),
+          #17090b;
+      }
+
+      .art-segment .sample {
+        color: #ff354e;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+        font-size: 2.9rem;
+        font-weight: 800;
+        text-shadow: 0 0 18px rgba(255, 53, 78, 0.58);
+      }
+
+      .art-flip {
+        gap: 8px;
+        grid-template-columns: repeat(4, 58px);
+        background: #171614;
+      }
+
+      .flip-card {
+        position: relative;
+        min-height: 96px;
+        display: grid;
+        place-items: center;
+        border: 1px solid #4c443c;
+        border-radius: 6px;
+        background:
+          linear-gradient(#2b2824 0 49%, #0e0d0c 50% 100%);
+        color: #f6efe5;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+        font-size: 2.4rem;
+        font-weight: 760;
+      }
+
+      .flip-card::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 50%;
+        border-top: 1px solid #5f564d;
+      }
+
+      .art-meter {
+        grid-template-columns: repeat(2, minmax(110px, 150px));
+        gap: 18px;
+        background: #f4f3ef;
+      }
+
+      .meter-face {
+        position: relative;
+        aspect-ratio: 1;
+        border: 1px solid #bfc7be;
+        border-radius: 8px;
+        background:
+          radial-gradient(circle at 50% 72%, #1b1c1a 0 5px, transparent 6px),
+          radial-gradient(circle at 50% 72%, transparent 0 58px, #dfe4df 59px 60px, transparent 61px),
+          #fbfaf7;
+      }
+
+      .meter-face::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        bottom: 28%;
+        width: 3px;
+        height: 56%;
+        background: var(--red);
+        transform-origin: bottom center;
+      }
+
+      .meter-face:first-child::before {
+        transform: rotate(-42deg);
+      }
+
+      .meter-face:last-child::before {
+        transform: rotate(34deg);
+      }
+
+      .art-vfd {
+        background:
+          radial-gradient(circle at 50% 55%, rgba(66, 236, 221, 0.22), transparent 48%),
+          #031312;
+      }
+
+      .art-vfd .sample {
+        display: grid;
+        gap: 6px;
+        color: #51f5e7;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+        font-size: 2rem;
+        text-align: center;
+        text-shadow: 0 0 20px rgba(81, 245, 231, 0.72);
+      }
+
+      .art-dali {
+        background:
+          radial-gradient(circle at 45% 45%, rgba(28, 91, 178, 0.2), transparent 52%),
+          #050608;
+      }
+
+      .art-dali .sample {
+        color: #42b9ff;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 4.1rem;
+        font-style: italic;
+        text-shadow: 0 0 18px rgba(66, 185, 255, 0.48);
+        transform: skewX(-8deg);
+      }
+
+      .art-audio {
+        background: #111512;
+      }
+
+      .wave {
+        width: min(78%, 340px);
+        height: 108px;
+        display: grid;
+        grid-template-columns: repeat(31, 1fr);
+        align-items: center;
+        gap: 5px;
+      }
+
+      .wave span {
+        display: block;
+        min-height: 8px;
+        border-radius: 999px;
+        background: #f0c35b;
+        box-shadow: 0 0 12px rgba(240, 195, 91, 0.42);
+      }
+
+      .wave span:nth-child(3n) {
+        height: 82px;
+      }
+
+      .wave span:nth-child(3n + 1) {
+        height: 38px;
+        background: #72d6b3;
+      }
+
+      .wave span:nth-child(5n) {
+        height: 104px;
+        background: #d96b62;
+      }
+
+      .tech-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .tech-panel {
+        display: grid;
+        gap: 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 22px;
+        background: var(--surface);
+      }
+
+      .tech-panel h3 {
+        font-size: 1.28rem;
+      }
+
+      .tech-panel p {
+        color: var(--ink-soft);
+      }
+
+      .thanks {
+        display: grid;
+        grid-template-columns: minmax(0, 0.7fr) minmax(260px, 0.9fr);
+        gap: 38px;
+        align-items: start;
+      }
+
+      .thanks-copy {
+        display: grid;
+        gap: 14px;
+        color: var(--ink-soft);
+      }
+
+      .footer {
+        padding: 28px 0;
+        border-top: 1px solid var(--line);
+        background: var(--night);
+        color: rgba(249, 255, 249, 0.76);
+      }
+
+      .footer .wrap {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+      }
+
+      .footer a {
+        color: #b9ead9;
+      }
+
+      @media (prefers-reduced-motion: no-preference) {
+        .hero-clock.matrix::before {
+          animation: matrixDrift 9s steps(6) infinite;
+        }
+
+        .hero-clock.oled::before {
+          animation: oledFloat 7s ease-in-out infinite alternate;
+        }
+
+        .hero-clock.crt::before {
+          animation: crtScan 4s linear infinite;
+        }
+
+        .art-oled .sample,
+        .art-dali .sample {
+          animation: softPulse 2.8s ease-in-out infinite alternate;
+        }
+      }
+
+      @keyframes matrixDrift {
+        to {
+          background-position: 34px 17px, 0 0;
+        }
+      }
+
+      @keyframes oledFloat {
+        to {
+          transform: translate(14px, -8px);
+        }
+      }
+
+      @keyframes crtScan {
+        to {
+          background-position: 0 24px, 0 0, 0 0;
+        }
+      }
+
+      @keyframes softPulse {
+        to {
+          opacity: 0.72;
+        }
+      }
+
+      @media (max-width: 980px) {
+        h1 {
+          font-size: 4.4rem;
+        }
+
+        h2 {
+          font-size: 2.15rem;
+        }
+
+        .hero-scene {
+          grid-template-columns: repeat(3, minmax(100px, 1fr));
+        }
+
+        .section-head,
+        .clock,
+        .thanks {
+          grid-template-columns: 1fr;
+        }
+
+        .clock {
+          align-items: start;
+        }
+
+        .tech-grid,
+        .summary-strip {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 680px) {
+        h1 {
+          font-size: 3.1rem;
+        }
+
+        h2 {
+          font-size: 1.9rem;
+        }
+
+        h3 {
+          font-size: 1.34rem;
+        }
+
+        .site-nav {
+          left: 12px;
+          right: 12px;
+          justify-content: flex-start;
+        }
+
+        .site-nav a {
+          min-height: 32px;
+          padding: 4px 9px;
+          font-size: 0.9rem;
+        }
+
+        .hero {
+          min-height: 78svh;
+        }
+
+        .hero::after {
+          background:
+            linear-gradient(0deg, rgba(16, 21, 18, 0.92), rgba(16, 21, 18, 0.58)),
+            linear-gradient(90deg, rgba(16, 21, 18, 0.86), rgba(16, 21, 18, 0.42));
+        }
+
+        .hero-scene {
+          grid-template-columns: repeat(2, minmax(100px, 1fr));
+        }
+
+        .hero-content {
+          width: min(100% - 24px, 1180px);
+          padding: 110px 0 38px;
+        }
+
+        .hero-copy {
+          font-size: 1rem;
+        }
+
+        .section {
+          padding: 48px 0;
+        }
+
+        .wrap {
+          width: min(100% - 24px, 1180px);
+        }
+
+        .clock {
+          gap: 22px;
+          padding: 34px 0;
+        }
+
+        .media-slot {
+          min-height: 260px;
+        }
+
+        .art-flip {
+          grid-template-columns: repeat(4, 46px);
+        }
+
+        .flip-card {
+          min-height: 82px;
+          font-size: 1.85rem;
+        }
+
+        .art-meter {
+          grid-template-columns: repeat(2, minmax(92px, 1fr));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="#clocks">Clocks</a>
+        <a href="#technology">Technology</a>
+        <a href="#thanks">Thanks</a>
+      </nav>
+
+      <div class="hero-scene" aria-hidden="true">
+        <div class="hero-clock matrix">
+          <strong>LED matrix</strong>
+          <span class="clock-time" data-clock-format="local">--:--:--</span>
+        </div>
+        <div class="hero-clock crt">
+          <strong>Composite CRT</strong>
+          <span class="clock-time" data-clock-format="local">--:--:--</span>
+        </div>
+        <div class="hero-clock oled">
+          <strong>OLED</strong>
+          <span class="clock-time" data-clock-format="local">--:--:--</span>
+        </div>
+        <div class="hero-clock epaper">
+          <strong>E Ink</strong>
+          <span class="clock-time" data-clock-format="local">--:--:--</span>
+        </div>
+        <div class="hero-clock vfd">
+          <strong>VFD</strong>
+          <span class="clock-time" data-clock-format="local">--:--:--</span>
+        </div>
+        <div class="hero-clock meter">
+          <strong>Panel meters</strong>
+          <span class="clock-time" data-clock-format="local">--:--:--</span>
+        </div>
+        <div class="hero-clock matrix">
+          <strong>Swatch beats</strong>
+          <span class="clock-time" data-clock-format="beats">@---</span>
+        </div>
+        <div class="hero-clock oled">
+          <strong>Dali clock</strong>
+          <span class="clock-time" data-clock-format="plain">------</span>
+        </div>
+        <div class="hero-clock epaper">
+          <strong>Speaking clock</strong>
+          <span class="clock-time" data-clock-format="spoken">-- -- --</span>
+        </div>
+        <div class="hero-clock crt">
+          <strong>Flip digits</strong>
+          <span class="clock-time" data-clock-format="short">--:--</span>
+        </div>
+        <div class="hero-clock vfd">
+          <strong>Seven segment</strong>
+          <span class="clock-time" data-clock-format="local">--:--:--</span>
+        </div>
+        <div class="hero-clock meter">
+          <strong>Same now</strong>
+          <span class="clock-time" data-clock-format="local">--:--:--</span>
+        </div>
+      </div>
+
+      <div class="hero-content">
+        <p class="eyebrow">EMF Camp 2026 installation</p>
+        <h1>Versions of Now</h1>
+        <p class="hero-copy">
+          See the same moment in time rendered across a collection of display technologies. Some glow,
+          some reflect light, some move, and one speaks. Each clock receives approximately the same
+          "now", then translates it through the habits and limits of its own medium.
+        </p>
+        <div class="hero-meta" aria-label="Live time summary">
+          <span>Local time <strong class="clock-time" data-clock-format="local">--:--:--</strong></span>
+          <span>Swatch beat <strong class="clock-time" data-clock-format="beats">@---</strong></span>
+          <span>11 clocks and counting</span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="section alt" aria-labelledby="about-title">
+        <div class="wrap">
+          <div class="section-head">
+            <h2 id="about-title">One Moment, Many Surfaces</h2>
+            <p>
+              At first glance it is a wall of clocks. Look longer and the differences become the point:
+              refresh rates, ghosting, glow, noise, mechanical lag, typographic quirks, startup rituals,
+              and the tiny compromises each technology makes while trying to say "now".
+            </p>
+          </div>
+
+          <div class="summary-strip" aria-label="Installation overview">
+            <div>
+              <strong>1 shared time</strong>
+              <span>Most devices synchronize over NTP, then render locally.</span>
+            </div>
+            <div>
+              <strong>11 clock forms</strong>
+              <span>From dot matrix LEDs to analog needles and telephone audio.</span>
+            </div>
+            <div>
+              <strong>Static website</strong>
+              <span>This page can be served directly from GitHub Pages.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="clocks" aria-labelledby="clocks-title">
+        <div class="wrap">
+          <div class="section-head">
+            <h2 id="clocks-title">The Clocks</h2>
+            <p>
+              Each section below has a single media slot for a final photograph, animated GIF, or short
+              loop of the physical clock. The placeholders are deliberately sized and framed so the page
+              can stay intact as the real documentation arrives.
+            </p>
+          </div>
+
+          <div class="clock-list">
+            <article class="clock" id="dot-matrix-clock">
+              <div class="clock-copy">
+                <p class="clock-kicker">01 / LED dot matrix</p>
+                <h3>8x32 Dot Matrix Clock</h3>
+                <div class="tech-tags">
+                  <span>MAX7219 LED drivers</span>
+                  <span>8 x 32 pixels</span>
+                  <span>ESP32</span>
+                </div>
+                <p>
+                  Four small LED matrix modules make a wide, low-resolution clock face. Every lit dot
+                  is a discrete red LED, so the personality comes from pixel-level transitions: seconds
+                  swap one by one, while minute changes fall through the display like loose beads.
+                </p>
+                <p class="trivia">
+                  Trivia: the MAX7219 family can address 64 individual LEDs per chip, which is exactly
+                  one 8 x 8 matrix. Four chips make this 256-pixel clock.
+                </p>
+                <div class="source-links" aria-label="Dot matrix sources">
+                  <a href="https://en.wikipedia.org/wiki/Dot-matrix_display" rel="noopener noreferrer">Dot-matrix displays</a>
+                  <a href="https://www.analog.com/en/products/max7219.html" rel="noopener noreferrer">MAX7219 driver</a>
+                </div>
+              </div>
+              <figure class="media-slot">
+                <!-- Media suggestion: assets/clocks/8x32-dot-matrix-clock.jpg, .gif, or .mp4 -->
+                <div class="media-art art-matrix" aria-hidden="true">
+                  <span class="sample">12:34 56</span>
+                </div>
+                <figcaption class="media-note">
+                  <strong>Photo or animation placeholder</strong>
+                  <span>8x32 dot matrix clock</span>
+                </figcaption>
+              </figure>
+            </article>
+
+            <article class="clock" id="crt-bbc-clock">
+              <div class="clock-copy">
+                <p class="clock-kicker">02 / Composite video</p>
+                <h3>CRT BBC Clock</h3>
+                <div class="tech-tags">
+                  <span>PAL composite video</span>
+                  <span>CRT display</span>
+                  <span>ESP32 DAC</span>
+                </div>
+                <p>
+                  This clock turns an ESP32 into a tiny television signal generator. It produces black
+                  and white composite video for a CRT, drawing a BBC-inspired mechanical ident where the
+                  time is a moving video frame rather than a grid of addressable pixels.
+                </p>
+                <p class="trivia">
+                  Trivia: a CRT image is drawn by scanning an electron beam across phosphor. In this
+                  clock, the "digital" time becomes an analog waveform before it becomes visible.
+                </p>
+                <div class="source-links" aria-label="CRT sources">
+                  <a href="https://en.wikipedia.org/wiki/Cathode-ray_tube" rel="noopener noreferrer">Cathode-ray tubes</a>
+                  <a href="https://en.wikipedia.org/wiki/Composite_video" rel="noopener noreferrer">Composite video</a>
+                </div>
+              </div>
+              <figure class="media-slot">
+                <!-- Media suggestion: assets/clocks/crt-bbc-clock.jpg, .gif, or .mp4 -->
+                <div class="media-art art-crt" aria-hidden="true"></div>
+                <figcaption class="media-note">
+                  <strong>Photo or animation placeholder</strong>
+                  <span>CRT BBC clock</span>
+                </figcaption>
+              </figure>
+            </article>
+
+            <article class="clock" id="oled-pinball-clock">
+              <div class="clock-copy">
+                <p class="clock-kicker">03 / Grayscale OLED</p>
+                <h3>256x64 OLED Pinball Clock</h3>
+                <div class="tech-tags">
+                  <span>SSD1322 OLED</span>
+                  <span>256 x 64 pixels</span>
+                  <span>Pinball motion</span>
+                </div>
+                <p>
+                  The time behaves like a bright object inside a narrow OLED playfield. It bounces off
+                  the edges, nudges floating obstacles, and leaves short fading trails behind it, using
+                  the display's grayscale to make motion feel luminous rather than simply on or off.
+                </p>
+                <p class="trivia">
+                  Trivia: OLED pixels emit their own light. This is why dark areas can be truly dark,
+                  and why tiny trails can glow without a backlight washing over the whole panel.
+                </p>
+                <div class="source-links" aria-label="OLED sources">
+                  <a href="https://en.wikipedia.org/wiki/OLED" rel="noopener noreferrer">OLED</a>
+                  <a href="https://www.solomon-systech.com/product/ssd1322/" rel="noopener noreferrer">SSD1322 controller</a>
+                </div>
+              </div>
+              <figure class="media-slot">
+                <!-- Media suggestion: assets/clocks/256x64-oled-pinball-clock.jpg, .gif, or .mp4 -->
+                <div class="media-art art-oled" aria-hidden="true">
+                  <span class="sample">12:34:56</span>
+                </div>
+                <figcaption class="media-note">
+                  <strong>Photo or animation placeholder</strong>
+                  <span>256x64 OLED pinball clock</span>
+                </figcaption>
+              </figure>
+            </article>
+
+            <article class="clock" id="pico-epaper-clock">
+              <div class="clock-copy">
+                <p class="clock-kicker">04 / Electronic paper</p>
+                <h3>Pico ePaper Clock</h3>
+                <div class="tech-tags">
+                  <span>Waveshare 4.2 inch panel</span>
+                  <span>400 x 300 pixels</span>
+                  <span>Pico W</span>
+                </div>
+                <p>
+                  This reflective display treats time like handwriting on paper. Seconds update in a
+                  constrained area, while minute changes trigger a fuller refresh and a new handwriting
+                  face. It is slower than glowing displays, but it has the calmness of ink.
+                </p>
+                <p class="trivia">
+                  Trivia: e-paper is bistable, so an image can remain visible without continuously
+                  powering every pixel. The tradeoff is that refreshes can be slow and sometimes leave
+                  faint ghosts.
+                </p>
+                <div class="source-links" aria-label="E-paper sources">
+                  <a href="https://en.wikipedia.org/wiki/Electronic_paper" rel="noopener noreferrer">Electronic paper</a>
+                  <a href="https://www.waveshare.com/pico-epaper-4.2.htm" rel="noopener noreferrer">Pico-ePaper-4.2</a>
+                </div>
+              </div>
+              <figure class="media-slot">
+                <!-- Media suggestion: assets/clocks/pico-epaper-clock.jpg, .gif, or .mp4 -->
+                <div class="media-art art-epaper" aria-hidden="true">
+                  <span class="sample">12:34</span>
+                </div>
+                <figcaption class="media-note">
+                  <strong>Photo or animation placeholder</strong>
+                  <span>Pico ePaper clock</span>
+                </figcaption>
+              </figure>
+            </article>
+
+            <article class="clock" id="nokia-beats-clock">
+              <div class="clock-copy">
+                <p class="clock-kicker">05 / Monochrome LCD</p>
+                <h3>PCD8544 Swatch Internet Time Clock</h3>
+                <div class="tech-tags">
+                  <span>Nokia 5110-style LCD</span>
+                  <span>84 x 48 pixels</span>
+                  <span>@beats</span>
+                </div>
+                <p>
+                  A tiny Nokia-style LCD shows Swatch Internet Time as an @xxx beat value. Instead of
+                  hours, minutes, and seconds, the day is divided into 1000 equal parts, giving the
+                  clock a timekeeping dialect that feels both futuristic and strangely retro.
+                </p>
+                <p class="trivia">
+                  Trivia: one Swatch .beat lasts 86.4 seconds. The system uses Biel Mean Time, based on
+                  UTC+1, and does not observe daylight saving time.
+                </p>
+                <div class="source-links" aria-label="LCD and beat time sources">
+                  <a href="https://learn.adafruit.com/nokia-5110-3310-monochrome-lcd" rel="noopener noreferrer">Nokia 5110 LCD</a>
+                  <a href="https://en.wikipedia.org/wiki/Swatch_Internet_Time" rel="noopener noreferrer">Swatch Internet Time</a>
+                </div>
+              </div>
+              <figure class="media-slot">
+                <!-- Media suggestion: assets/clocks/nokia-beats-clock.jpg, .gif, or .mp4 -->
+                <div class="media-art art-lcd" aria-hidden="true">
+                  <span class="sample">@734</span>
+                </div>
+                <figcaption class="media-note">
+                  <strong>Photo or animation placeholder</strong>
+                  <span>PCD8544 Swatch Internet Time clock</span>
+                </figcaption>
+              </figure>
+            </article>
+
+            <article class="clock" id="tm1637-clock">
+              <div class="clock-copy">
+                <p class="clock-kicker">06 / Seven-segment LED</p>
+                <h3>TM1637 6-Digit Clock</h3>
+                <div class="tech-tags">
+                  <span>Six LED digits</span>
+                  <span>Seven-segment numerals</span>
+                  <span>ESP32-S3</span>
+                </div>
+                <p>
+                  The six-digit module shows local time as HHMMSS, with dots separating hours, minutes,
+                  and seconds. It is one of the most direct clocks in the installation: bright segmented
+                  numerals, fast updates, and almost no room for ambiguity.
+                </p>
+                <p class="trivia">
+                  Trivia: seven-segment displays are a display language of restraint. With just seven
+                  bars per digit, they can make every numeral from 0 to 9 instantly recognizable.
+                </p>
+                <div class="source-links" aria-label="Seven-segment sources">
+                  <a href="https://en.wikipedia.org/wiki/Seven-segment_display" rel="noopener noreferrer">Seven-segment displays</a>
+                  <a href="https://en.wikipedia.org/wiki/LED_display" rel="noopener noreferrer">LED displays</a>
+                </div>
+              </div>
+              <figure class="media-slot">
+                <!-- Media suggestion: assets/clocks/tm1637-clock.jpg, .gif, or .mp4 -->
+                <div class="media-art art-segment" aria-hidden="true">
+                  <span class="sample">12.34.56</span>
+                </div>
+                <figcaption class="media-note">
+                  <strong>Photo or animation placeholder</strong>
+                  <span>TM1637 6-digit clock</span>
+                </figcaption>
+              </figure>
+            </article>
+
+            <article class="clock" id="flip-digits-clock">
+              <div class="clock-copy">
+                <p class="clock-kicker">07 / Electromechanical segments</p>
+                <h3>Flip Digits Clock</h3>
+                <div class="tech-tags">
+                  <span>Four physical digits</span>
+                  <span>RS-485 bus</span>
+                  <span>HHMM</span>
+                </div>
+                <p>
+                  Four FlipDigitSSB modules form a mechanical-looking HHMM clock over an RS-485 link.
+                  The display is still seven-segment at heart, but the change in state is physical
+                  enough to feel closer to signage than to a screen.
+                </p>
+                <p class="trivia">
+                  Trivia: RS-485 is common in industrial settings because it is differential, which
+                  helps signals travel farther and tolerate electrical noise better than simple serial
+                  wiring.
+                </p>
+                <div class="source-links" aria-label="Flip digit sources">
+                  <a href="https://en.wikipedia.org/wiki/Seven-segment_display" rel="noopener noreferrer">Seven-segment displays</a>
+                  <a href="https://en.wikipedia.org/wiki/RS-485" rel="noopener noreferrer">RS-485</a>
+                </div>
+              </div>
+              <figure class="media-slot">
+                <!-- Media suggestion: assets/clocks/flpidigits-clock.jpg, .gif, or .mp4 -->
+                <div class="media-art art-flip" aria-hidden="true">
+                  <span class="flip-card">1</span>
+                  <span class="flip-card">2</span>
+                  <span class="flip-card">3</span>
+                  <span class="flip-card">4</span>
+                </div>
+                <figcaption class="media-note">
+                  <strong>Photo or animation placeholder</strong>
+                  <span>Flip digits clock</span>
+                </figcaption>
+              </figure>
+            </article>
+
+            <article class="clock" id="analog-panel-meter-clock">
+              <div class="clock-copy">
+                <p class="clock-kicker">08 / Analog needles</p>
+                <h3>Analog Panel Meter Clock</h3>
+                <div class="tech-tags">
+                  <span>Two panel meters</span>
+                  <span>MCP4728 DAC</span>
+                  <span>Continuous motion</span>
+                </div>
+                <p>
+                  Two analog panel meters become clock hands. One meter sweeps through a 24-hour day;
+                  the other sweeps through each hour. Instead of digits, the time is a pair of voltages
+                  turned into needle positions.
+                </p>
+                <p class="trivia">
+                  Trivia: many analog meters descend from galvanometer movements, where a current
+                  through a coil creates a magnetic force that deflects a pointer.
+                </p>
+                <div class="source-links" aria-label="Analog meter sources">
+                  <a href="https://en.wikipedia.org/wiki/Galvanometer" rel="noopener noreferrer">Galvanometers</a>
+                  <a href="https://www.microchip.com/en-us/product/mcp4728" rel="noopener noreferrer">MCP4728 DAC</a>
+                </div>
+              </div>
+              <figure class="media-slot">
+                <!-- Media suggestion: assets/clocks/analog-panel-meter-clock.jpg, .gif, or .mp4 -->
+                <div class="media-art art-meter" aria-hidden="true">
+                  <span class="meter-face"></span>
+                  <span class="meter-face"></span>
+                </div>
+                <figcaption class="media-note">
+                  <strong>Photo or animation placeholder</strong>
+                  <span>Analog panel meter clock</span>
+                </figcaption>
+              </figure>
+            </article>
+
+            <article class="clock" id="vfd-clock">
+              <div class="clock-copy">
+                <p class="clock-kicker">09 / Vacuum fluorescent display</p>
+                <h3>VFD Clock</h3>
+                <div class="tech-tags">
+                  <span>Wincor Nixdorf BA63</span>
+                  <span>2 x 20 characters</span>
+                  <span>RS-232</span>
+                </div>
+                <p>
+                  A point-of-sale customer display becomes a bright blue-green clock. The first line
+                  shows HH:MM:SS, while the second line fills a 20-character progress bar across the
+                  minute.
+                </p>
+                <p class="trivia">
+                  Trivia: VFDs glow because electrons strike phosphor-coated anodes inside a vacuum
+                  tube, giving them a crisp light that sits somewhere between neon, CRTs, and LEDs.
+                </p>
+                <div class="source-links" aria-label="VFD sources">
+                  <a href="https://en.wikipedia.org/wiki/Vacuum_fluorescent_display" rel="noopener noreferrer">VFD technology</a>
+                  <a href="https://www.manualslib.com/manual/1146241/Wincor-Nixdorf-Ba63.html" rel="noopener noreferrer">BA63 manual</a>
+                </div>
+              </div>
+              <figure class="media-slot">
+                <!-- Media suggestion: assets/clocks/vfd-clock.jpg, .gif, or .mp4 -->
+                <div class="media-art art-vfd" aria-hidden="true">
+                  <span class="sample">
+                    <span>12:34:56</span>
+                    <span>======----</span>
+                  </span>
+                </div>
+                <figcaption class="media-note">
+                  <strong>Photo or animation placeholder</strong>
+                  <span>VFD clock</span>
+                </figcaption>
+              </figure>
+            </article>
+
+            <article class="clock" id="dali-clock">
+              <div class="clock-copy">
+                <p class="clock-kicker">10 / High-density LCD</p>
+                <h3>Dali Clock on HyperPixel 4.0 Square</h3>
+                <div class="tech-tags">
+                  <span>720 x 720 LCD</span>
+                  <span>Raspberry Pi</span>
+                  <span>xdaliclock</span>
+                </div>
+                <p>
+                  A Raspberry Pi runs Jamie Zawinski's Dali Clock full-screen on a square HyperPixel
+                  display. The digits do not simply change; they melt from one form to the next, making
+                  a modern LCD imitate a much softer kind of motion.
+                </p>
+                <p class="trivia">
+                  Trivia: this is the highest-resolution visual clock in the current set, but it uses
+                  that density to make the numbers feel elastic rather than sharp.
+                </p>
+                <div class="source-links" aria-label="Dali clock sources">
+                  <a href="https://shop.pimoroni.com/products/hyperpixel-4-square" rel="noopener noreferrer">HyperPixel 4.0 Square</a>
+                  <a href="https://www.jwz.org/xdaliclock/" rel="noopener noreferrer">Dali Clock</a>
+                </div>
+              </div>
+              <figure class="media-slot">
+                <!-- Media suggestion: assets/clocks/xdaliclock-hyperpixel-square.jpg, .gif, or .mp4 -->
+                <div class="media-art art-dali" aria-hidden="true">
+                  <span class="sample">12:34</span>
+                </div>
+                <figcaption class="media-note">
+                  <strong>Photo or animation placeholder</strong>
+                  <span>Dali Clock on HyperPixel 4.0 Square</span>
+                </figcaption>
+              </figure>
+            </article>
+
+            <article class="clock" id="speaking-clock">
+              <div class="clock-copy">
+                <p class="clock-kicker">11 / Audio timepiece</p>
+                <h3>Speaking Clock</h3>
+                <div class="tech-tags">
+                  <span>Telephone handset</span>
+                  <span>Text-to-speech</span>
+                  <span>1 kHz strokes</span>
+                </div>
+                <p>
+                  The speaking clock has no visual display at all. It announces the time through a
+                  handset in the classic UK pattern: a spoken phrase followed by three strokes, with the
+                  third stroke scheduled for the announced moment.
+                </p>
+                <p class="trivia">
+                  Trivia: telephone speaking clocks date back to the 1930s. They made accurate time a
+                  public service long before every pocket carried a networked clock.
+                </p>
+                <div class="source-links" aria-label="Speaking clock sources">
+                  <a href="https://en.wikipedia.org/wiki/Speaking_clock" rel="noopener noreferrer">Speaking clocks</a>
+                  <a href="https://github.com/espeak-ng/espeak-ng" rel="noopener noreferrer">eSpeak NG</a>
+                </div>
+              </div>
+              <figure class="media-slot">
+                <!-- Media suggestion: assets/clocks/speaking-clock.jpg, .gif, or .mp4 -->
+                <div class="media-art art-audio" aria-hidden="true">
+                  <span class="wave">
+                    <span></span><span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span><span></span>
+                    <span></span>
+                  </span>
+                </div>
+                <figcaption class="media-note">
+                  <strong>Photo or animation placeholder</strong>
+                  <span>Speaking clock</span>
+                </figcaption>
+              </figure>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section alt" id="technology" aria-labelledby="technology-title">
+        <div class="wrap">
+          <div class="section-head">
+            <h2 id="technology-title">Underlying Technology</h2>
+            <p>
+              The installation is built from small, local systems rather than a central video player.
+              That keeps the clocks independent: if one display is slow, noisy, or gloriously awkward,
+              it gets to be slow, noisy, or gloriously awkward in its own way.
+            </p>
+          </div>
+
+          <div class="tech-grid">
+            <article class="tech-panel">
+              <h3>ESPHome Firmware</h3>
+              <p>
+                Most microcontroller clocks use <a href="https://esphome.io/" rel="noopener noreferrer">ESPHome</a>,
+                which turns compact YAML configurations into firmware for boards such as ESP32 and
+                RP2040. The devices can update over the local network and expose simple calibration
+                controls without needing a cloud service.
+              </p>
+              <p>
+                Trivia: ESPHome is often associated with home automation, but here it behaves more like
+                a tiny exhibition operating system for displays.
+              </p>
+            </article>
+
+            <article class="tech-panel">
+              <h3>NTP And "Now"</h3>
+              <p>
+                The clocks use network time through SNTP/NTP servers, including the
+                <a href="https://www.ntppool.org/en/" rel="noopener noreferrer">NTP Pool</a>. NTP is
+                designed to estimate both clock offset and network delay, which is why it can be useful
+                even when packets take slightly different routes across the internet.
+              </p>
+              <p>
+                Trivia: NTP timestamps count from an epoch in 1900, not 1970. The modern NTPv4
+                specification is documented in <a href="https://www.rfc-editor.org/rfc/rfc5905" rel="noopener noreferrer">RFC 5905</a>.
+              </p>
+            </article>
+
+            <article class="tech-panel">
+              <h3>Small Computers</h3>
+              <p>
+                The ESP32 clocks use Wi-Fi microcontrollers from
+                <a href="https://www.espressif.com/en/products/socs/esp32" rel="noopener noreferrer">Espressif</a>.
+                The e-paper clock uses a Raspberry Pi Pico W, and the Dali and speaking clocks use
+                Raspberry Pi systems where Linux is useful for display or audio software.
+              </p>
+              <p>
+                Trivia: the same installation spans bare-metal-style display loops, ESPHome components,
+                and ordinary Linux services. They all meet at the same question: what should this second
+                look or sound like?
+              </p>
+            </article>
+
+            <article class="tech-panel">
+              <h3>Local, Static, Repairable</h3>
+              <p>
+                The public description is a single HTML file with inline styling and a small live-time
+                script. It can be served from GitHub Pages without a build step, and the clock firmware
+                avoids Home Assistant, MQTT, and cloud dependencies unless a future clock explicitly
+                needs them.
+              </p>
+              <p>
+                Trivia: static sites are a good match for installations because the page can outlive
+                laptops, local servers, and whatever festival Wi-Fi happens to be doing that day.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="thanks" aria-labelledby="thanks-title">
+        <div class="wrap thanks">
+          <h2 id="thanks-title">Thanks</h2>
+          <div class="thanks-copy">
+            <p>
+              Placeholder acknowledgements for now: thanks to the EMF Camp community, the open-source
+              maintainers whose tools make tiny hardware feel approachable, the people documenting old
+              displays and new modules, and everyone who has encouraged this project from "what if" to
+              "yes, build the wall of clocks".
+            </p>
+            <p>
+              Final names, suppliers, collaborators, and build credits will be added here as the
+              installation comes together.
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap">
+        <span>Versions of Now</span>
+        <span>Single-file static page for GitHub Pages.</span>
+      </div>
+    </footer>
+
+    <script>
+      const pad = (value) => String(value).padStart(2, "0");
+
+      function localParts(date) {
+        return {
+          hour: pad(date.getHours()),
+          minute: pad(date.getMinutes()),
+          second: pad(date.getSeconds()),
+        };
+      }
+
+      function swatchBeat(date) {
+        const utcSeconds =
+          date.getUTCHours() * 3600 + date.getUTCMinutes() * 60 + date.getUTCSeconds();
+        const bielSeconds = (utcSeconds + 3600) % 86400;
+        return Math.floor((bielSeconds * 1000) / 86400);
+      }
+
+      function updateTimes() {
+        const now = new Date();
+        const parts = localParts(now);
+        const values = {
+          local: `${parts.hour}:${parts.minute}:${parts.second}`,
+          short: `${parts.hour}:${parts.minute}`,
+          plain: `${parts.hour}${parts.minute}${parts.second}`,
+          spoken: `${parts.hour} ${parts.minute} ${parts.second}`,
+          beats: `@${String(swatchBeat(now)).padStart(3, "0")}`,
+        };
+
+        document.querySelectorAll("[data-clock-format]").forEach((element) => {
+          const format = element.getAttribute("data-clock-format");
+          element.textContent = values[format] || values.local;
+        });
+      }
+
+      updateTimes();
+      window.setInterval(updateTimes, 1000);
+    </script>
+  </body>
+</html>
