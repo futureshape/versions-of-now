@@ -7,6 +7,7 @@ import argparse
 import contextlib
 import dataclasses
 import datetime as dt
+import json
 import logging
 import math
 import os
@@ -18,6 +19,9 @@ import subprocess
 import sys
 import tempfile
 import time
+import urllib.error
+import urllib.parse
+import urllib.request
 import wave
 from pathlib import Path
 
@@ -74,6 +78,14 @@ class SpeechEngine:
     rate: int
     volume: int
     default_voice: bool
+    piper_python: str = ""
+    piper_data_dir: str = ""
+    piper_length_scale: float = 1.0
+    piper_noise_scale: float = 0.667
+    piper_noise_w_scale: float = 0.8
+    piper_sentence_silence: float = 0.0
+    piper_url: str = ""
+    piper_timeout: float = 20.0
 
 
 @dataclasses.dataclass(frozen=True)
@@ -222,6 +234,29 @@ def command_output(command: list[str]) -> str | None:
     return result.stdout.strip()
 
 
+def piper_python_command(args: argparse.Namespace) -> str:
+    if args.piper_python:
+        return args.piper_python
+
+    install_python = "/opt/speaking-clock/venv/bin/python"
+    if Path(install_python).exists():
+        return install_python
+
+    return sys.executable
+
+
+def piper_available(args: argparse.Namespace) -> bool:
+    python = piper_python_command(args)
+    if not Path(python).exists() and shutil.which(python) is None:
+        return False
+
+    return command_output([
+        python,
+        "-c",
+        "import importlib.util; print('ok' if importlib.util.find_spec('piper') else 'missing')",
+    ]) == "ok"
+
+
 def select_speech_engine(args: argparse.Namespace) -> SpeechEngine:
     backend = args.backend
     system = platform.system()
@@ -229,17 +264,21 @@ def select_speech_engine(args: argparse.Namespace) -> SpeechEngine:
     if backend == "auto":
         if system == "Darwin" and shutil.which("say"):
             backend = "say"
+        elif piper_available(args):
+            backend = "piper"
         elif shutil.which("espeak-ng"):
             backend = "espeak-ng"
         elif shutil.which("say"):
             backend = "say"
         else:
-            raise ClockError("could not find espeak-ng or macOS say")
+            raise ClockError("could not find piper, espeak-ng, or macOS say")
 
     if backend == "say" and not shutil.which("say"):
         raise ClockError("macOS say is not available")
     if backend == "espeak-ng" and not shutil.which("espeak-ng"):
         raise ClockError("espeak-ng is not installed")
+    if backend == "piper" and not args.piper_url and not piper_available(args):
+        raise ClockError("Piper is not installed or cannot be imported")
 
     default_voice = False
     voice = args.voice
@@ -249,6 +288,9 @@ def select_speech_engine(args: argparse.Namespace) -> SpeechEngine:
             default_voice = True
         elif backend == "espeak-ng":
             voice = "en-gb"
+            default_voice = True
+        elif backend == "piper":
+            voice = "en_GB-alba-medium"
             default_voice = True
 
     if args.rate:
@@ -264,6 +306,14 @@ def select_speech_engine(args: argparse.Namespace) -> SpeechEngine:
         rate=rate,
         volume=args.volume,
         default_voice=default_voice,
+        piper_python=piper_python_command(args),
+        piper_data_dir=args.piper_data_dir,
+        piper_length_scale=args.piper_length_scale,
+        piper_noise_scale=args.piper_noise_scale,
+        piper_noise_w_scale=args.piper_noise_w_scale,
+        piper_sentence_silence=args.piper_sentence_silence,
+        piper_url=args.piper_url,
+        piper_timeout=args.piper_timeout,
     )
 
 
@@ -287,6 +337,60 @@ def select_audio_player(args: argparse.Namespace) -> AudioPlayer:
         raise ClockError("afplay is not available")
 
     return AudioPlayer(player=player, audio_device=args.audio_device)
+
+
+def piper_readiness_url(synthesize_url: str) -> str:
+    parsed = urllib.parse.urlparse(synthesize_url)
+    return urllib.parse.urlunparse(parsed._replace(path="/voices", query="", fragment=""))
+
+
+def wait_for_piper_http(synthesize_url: str, timeout: float) -> None:
+    readiness_url = piper_readiness_url(synthesize_url)
+    started_at = time.monotonic()
+
+    while True:
+        try:
+            with urllib.request.urlopen(readiness_url, timeout=2.0) as response:
+                if 200 <= response.status < 300:
+                    LOG.info("Piper HTTP server is ready")
+                    return
+        except (urllib.error.URLError, TimeoutError):
+            pass
+
+        if timeout > 0 and time.monotonic() - started_at >= timeout:
+            raise ClockError("Piper HTTP server did not become ready before timeout")
+
+        time.sleep(1.0)
+
+
+def render_piper_http(text: str, engine: SpeechEngine, voice: str, path: Path) -> None:
+    payload = {
+        "text": text,
+        "voice": voice,
+        "length_scale": engine.piper_length_scale,
+        "noise_scale": engine.piper_noise_scale,
+        "noise_w_scale": engine.piper_noise_w_scale,
+    }
+    request = urllib.request.Request(
+        engine.piper_url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=engine.piper_timeout) as response:
+            if not 200 <= response.status < 300:
+                raise ClockError(f"Piper HTTP returned status {response.status}")
+            path.write_bytes(response.read())
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace").strip()
+        message = f"Piper HTTP returned status {exc.code}"
+        if detail:
+            message = f"{message}: {detail}"
+        raise ClockError(message) from exc
+    except (urllib.error.URLError, TimeoutError) as exc:
+        raise ClockError(f"Piper HTTP request failed: {exc}") from exc
 
 
 def render_speech(text: str, engine: SpeechEngine, directory: Path) -> RenderedClip:
@@ -319,10 +423,41 @@ def render_speech(text: str, engine: SpeechEngine, directory: Path) -> RenderedC
                 if voice:
                     command.extend(["-v", voice])
                 command.append(text)
+            elif engine.backend == "piper":
+                if not voice:
+                    raise ClockError("Piper requires a voice/model name")
+
+                if engine.piper_url:
+                    render_piper_http(text, engine, voice, path)
+                    command = []
+                else:
+                    command = [
+                        engine.piper_python,
+                        "-m",
+                        "piper",
+                        "-m",
+                        voice,
+                        "-f",
+                        str(path),
+                        "--length-scale",
+                        str(engine.piper_length_scale),
+                        "--noise-scale",
+                        str(engine.piper_noise_scale),
+                        "--noise-w-scale",
+                        str(engine.piper_noise_w_scale),
+                        "--sentence-silence",
+                        str(engine.piper_sentence_silence),
+                        "--volume",
+                        str(engine.volume / 100.0),
+                    ]
+                    if engine.piper_data_dir:
+                        command.extend(["--data-dir", engine.piper_data_dir])
+                    command.extend(["--", text])
             else:
                 raise ClockError(f"unsupported speech backend: {engine.backend}")
 
-            run_command(command)
+            if command:
+                run_command(command)
             duration = audio_duration(path, fallback_text=text, fallback_rate=engine.rate)
             if duration > 0.05:
                 return RenderedClip(path=path, duration=duration)
@@ -581,6 +716,9 @@ def run_clock(args: argparse.Namespace, engine: SpeechEngine, player: AudioPlaye
     if args.require_sync:
         wait_for_clock_sync(args.sync_timeout)
 
+    if engine.backend == "piper" and engine.piper_url:
+        wait_for_piper_http(engine.piper_url, args.piper_startup_timeout)
+
     once = args.once or args.dry_run
 
     while True:
@@ -636,12 +774,30 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--hour-mode", choices=("12", "24"), default="12", help="spoken hour style")
     parser.add_argument("--source-label", default="", help='optional phrase such as "from Versions of Now"')
 
-    parser.add_argument("--backend", choices=("auto", "espeak-ng", "say"), default="auto")
+    parser.add_argument("--backend", choices=("auto", "espeak-ng", "piper", "say"), default="auto")
     parser.add_argument("--player", choices=("auto", "aplay", "afplay"), default="auto")
-    parser.add_argument("--voice", help="speech voice name, for example en-gb or Daniel")
+    parser.add_argument("--voice", help="speech voice/model name, for example en_GB-alba-medium or Daniel")
     parser.add_argument("--rate", type=int, default=0, help="speech rate; backend default when omitted")
-    parser.add_argument("--volume", type=int, default=160, help="espeak-ng volume, ignored by macOS say")
+    parser.add_argument("--volume", type=int, default=160, help="espeak-ng volume or Piper gain percent, ignored by macOS say")
     parser.add_argument("--audio-device", help="ALSA device for aplay, for example plughw:1,0")
+    parser.add_argument(
+        "--piper-python",
+        default="",
+        help="Python executable with piper-tts installed; defaults to /opt/speaking-clock/venv/bin/python when present",
+    )
+    parser.add_argument("--piper-data-dir", default="/opt/speaking-clock/voices", help="Piper voice model directory")
+    parser.add_argument("--piper-length-scale", type=positive_float, default=1.0, help="Piper speech length scale")
+    parser.add_argument("--piper-noise-scale", type=positive_float, default=0.667, help="Piper noise scale")
+    parser.add_argument("--piper-noise-w-scale", type=positive_float, default=0.8, help="Piper phoneme duration noise scale")
+    parser.add_argument("--piper-sentence-silence", type=positive_float, default=0.0, help="Piper silence after each sentence")
+    parser.add_argument("--piper-url", default="", help="Piper HTTP synthesis URL; when set, avoids reloading the model")
+    parser.add_argument("--piper-timeout", type=positive_float, default=20.0, help="Piper HTTP synthesis timeout in seconds")
+    parser.add_argument(
+        "--piper-startup-timeout",
+        type=positive_float,
+        default=120.0,
+        help="seconds to wait for Piper HTTP to become ready; 0 waits forever",
+    )
 
     parser.add_argument("--require-sync", action="store_true", help="wait until the system clock reports NTP sync")
     parser.add_argument(

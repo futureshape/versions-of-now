@@ -17,8 +17,8 @@ actually needs them.
 - Folder: `rpi/speaking-clock/`
 - Output: system audio output for a telephone handset headset or USB audio
   adapter
-- Runtime: Python standard library, local text-to-speech, ALSA on Raspberry Pi,
-  and `say`/`afplay` on macOS for testing
+- Runtime: Python standard library, Piper local neural text-to-speech, ALSA on
+  Raspberry Pi, and `say`/`afplay` on macOS for testing
 
 The Pi announces the local time every 10 seconds in a UK speaking-clock style
 phrase and schedules the third 1 kHz stroke on the announced time. See

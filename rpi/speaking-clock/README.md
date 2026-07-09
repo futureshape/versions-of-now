@@ -21,10 +21,10 @@ The clock follows the recognisable UK speaking-clock pattern:
 - On Raspberry Pi, the service waits for the system clock to report NTP sync
   before announcing.
 
-This does not include copyrighted historical BT recordings. The default voices
-are local text-to-speech voices: `en-gb` through `espeak-ng` on Raspberry Pi and
-`Daniel` through `say` on macOS when available. The physical telephone headset
-does much of the useful band-limiting.
+This does not include copyrighted historical BT recordings. The Raspberry Pi
+default is the local neural Piper voice `en_GB-alba-medium`; `espeak-ng` remains
+installed as a simple fallback. macOS tests use `Daniel` through `say` when
+available. The physical telephone headset does much of the useful band-limiting.
 
 ## Hardware Assumptions
 
@@ -92,9 +92,12 @@ python3 speaking_clock.py --test-time 12:00:00 --voice "Samantha"
    ```
 
 The installer creates a locked `speakingclock` user, installs `python3`,
-`espeak-ng`, and `alsa-utils`, enables system time synchronization where
-available, copies the runtime to `/opt/speaking-clock/`, and creates a systemd
-service.
+`python3-venv`, `espeak-ng`, and `alsa-utils`, creates a Piper virtualenv at
+`/opt/speaking-clock/venv`, downloads the `en_GB-alba-medium` voice to
+`/opt/speaking-clock/voices`, enables system time synchronization where
+available, copies the runtime to `/opt/speaking-clock/`, and creates two systemd
+services: `speaking-clock-piper.service` keeps the Piper model loaded through a
+local HTTP server, and `speaking-clock.service` schedules the announcements.
 
 ## Configuration
 
@@ -107,7 +110,7 @@ Runtime arguments live in:
 The default is:
 
 ```sh
-SPEAKING_CLOCK_ARGS="--interval 10 --backend espeak-ng --player aplay --voice en-gb --rate 140 --require-sync"
+SPEAKING_CLOCK_ARGS="--interval 10 --backend piper --player aplay --voice en_GB-alba-medium --piper-url http://127.0.0.1:5000/ --piper-data-dir /opt/speaking-clock/voices --volume 100 --require-sync"
 ```
 
 Useful changes:
@@ -115,7 +118,13 @@ Useful changes:
 - Use a specific USB audio adapter:
 
   ```sh
-  SPEAKING_CLOCK_ARGS="--interval 10 --backend espeak-ng --player aplay --audio-device plughw:1,0 --voice en-gb --rate 140 --require-sync"
+  SPEAKING_CLOCK_ARGS="--interval 10 --backend piper --player aplay --audio-device plughw:1,0 --voice en_GB-alba-medium --piper-url http://127.0.0.1:5000/ --piper-data-dir /opt/speaking-clock/voices --volume 100 --require-sync"
+  ```
+
+- Try the old espeak-ng fallback:
+
+  ```sh
+  --backend espeak-ng --voice en-gb --rate 140 --volume 160
   ```
 
 - Add installation wording:
@@ -147,7 +156,7 @@ aplay -l
 Play a generated test announcement without installing the service:
 
 ```sh
-python3 speaking_clock.py --test-time 12:34:50 --backend espeak-ng --player aplay
+python3 /opt/speaking-clock/speaking_clock.py --test-time 12:34:50 --backend piper --player aplay --voice en_GB-alba-medium --piper-url http://127.0.0.1:5000/ --piper-data-dir /opt/speaking-clock/voices
 ```
 
 If the service logs `audio open error`, set `--audio-device` in
@@ -165,3 +174,5 @@ timedatectl status
 Reference notes checked on 2026-06-23:
 
 - `https://en.wikipedia.org/wiki/Speaking_clock`
+- `https://github.com/OHF-Voice/piper1-gpl`
+- `https://huggingface.co/rhasspy/piper-voices/tree/main/en/en_GB`

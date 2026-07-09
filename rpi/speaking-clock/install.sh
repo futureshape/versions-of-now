@@ -4,6 +4,7 @@ set -euo pipefail
 CLOCK_USER="speakingclock"
 CLOCK_HOME="/var/lib/speaking-clock"
 INSTALL_DIR="/opt/speaking-clock"
+PIPER_VOICE="${PIPER_VOICE:-en_GB-alba-medium}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 log() {
@@ -42,11 +43,28 @@ apt_update() {
 install_packages() {
   apt_update
 
-  log "installing Python, espeak-ng, and ALSA playback tools"
+  log "installing Python, espeak-ng, ALSA playback tools, and venv support"
   DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     alsa-utils \
     espeak-ng \
-    python3
+    python3 \
+    python3-venv
+}
+
+install_piper() {
+  log "installing Piper TTS into ${INSTALL_DIR}/venv"
+
+  python3 -m venv "${INSTALL_DIR}/venv"
+  "${INSTALL_DIR}/venv/bin/python" -m pip install --upgrade pip
+  "${INSTALL_DIR}/venv/bin/python" -m pip install --upgrade 'piper-tts[http]'
+
+  install -d -m 0755 "${INSTALL_DIR}/voices"
+  if [ ! -f "${INSTALL_DIR}/voices/${PIPER_VOICE}.onnx" ]; then
+    log "downloading Piper voice ${PIPER_VOICE}"
+    "${INSTALL_DIR}/venv/bin/python" -m piper.download_voices \
+      --data-dir "${INSTALL_DIR}/voices" \
+      "${PIPER_VOICE}"
+  fi
 }
 
 configure_time_sync() {
@@ -118,23 +136,88 @@ install_runtime_files() {
     cat >/etc/default/speaking-clock <<'EOF'
 # Arguments for the telephone-style speaking clock.
 #
-# Raspberry Pi defaults use espeak-ng for a British-English voice and ALSA
-# playback through the system default audio output.
+# Raspberry Pi defaults use Piper for a local neural British-English voice and
+# ALSA playback through the system default audio output. espeak-ng remains
+# installed as a simple fallback backend.
 #
 # If your vintage handset is a USB audio adapter, find its ALSA device with:
 #   aplay -l
 # Then add for example:
 #   --audio-device plughw:1,0
-SPEAKING_CLOCK_ARGS="--interval 10 --backend espeak-ng --player aplay --voice en-gb --rate 140 --require-sync"
+SPEAKING_CLOCK_ARGS="--interval 10 --backend piper --player aplay --voice en_GB-alba-medium --piper-url http://127.0.0.1:5000/ --piper-data-dir /opt/speaking-clock/voices --volume 100 --require-sync"
+EOF
+  elif grep -qxF 'SPEAKING_CLOCK_ARGS="--interval 10 --backend espeak-ng --player aplay --voice en-gb --rate 140 --require-sync"' /etc/default/speaking-clock; then
+    cp /etc/default/speaking-clock "/etc/default/speaking-clock.pre-piper.$(date +%Y%m%d%H%M%S)"
+    cat >/etc/default/speaking-clock <<'EOF'
+# Arguments for the telephone-style speaking clock.
+#
+# Raspberry Pi defaults use Piper for a local neural British-English voice and
+# ALSA playback through the system default audio output. espeak-ng remains
+# installed as a simple fallback backend.
+#
+# If your vintage handset is a USB audio adapter, find its ALSA device with:
+#   aplay -l
+# Then add for example:
+#   --audio-device plughw:1,0
+SPEAKING_CLOCK_ARGS="--interval 10 --backend piper --player aplay --voice en_GB-alba-medium --piper-url http://127.0.0.1:5000/ --piper-data-dir /opt/speaking-clock/voices --volume 100 --require-sync"
+EOF
+  elif grep -qxF 'SPEAKING_CLOCK_ARGS="--interval 10 --backend piper --player aplay --voice en_GB-alba-medium --piper-python /opt/speaking-clock/venv/bin/python --piper-data-dir /opt/speaking-clock/voices --volume 100 --require-sync"' /etc/default/speaking-clock; then
+    cp /etc/default/speaking-clock "/etc/default/speaking-clock.pre-piper-http.$(date +%Y%m%d%H%M%S)"
+    cat >/etc/default/speaking-clock <<'EOF'
+# Arguments for the telephone-style speaking clock.
+#
+# Raspberry Pi defaults use Piper for a local neural British-English voice and
+# ALSA playback through the system default audio output. espeak-ng remains
+# installed as a simple fallback backend.
+#
+# If your vintage handset is a USB audio adapter, find its ALSA device with:
+#   aplay -l
+# Then add for example:
+#   --audio-device plughw:1,0
+SPEAKING_CLOCK_ARGS="--interval 10 --backend piper --player aplay --voice en_GB-alba-medium --piper-url http://127.0.0.1:5000/ --piper-data-dir /opt/speaking-clock/voices --volume 100 --require-sync"
+EOF
+  elif grep -qxF 'SPEAKING_CLOCK_ARGS="--interval 10 --backend piper --player aplay --voice en_GB-alba-medium --piper-url http://127.0.0.1:5000/synthesize --piper-data-dir /opt/speaking-clock/voices --volume 100 --require-sync"' /etc/default/speaking-clock; then
+    cp /etc/default/speaking-clock "/etc/default/speaking-clock.pre-piper-root-api.$(date +%Y%m%d%H%M%S)"
+    cat >/etc/default/speaking-clock <<'EOF'
+# Arguments for the telephone-style speaking clock.
+#
+# Raspberry Pi defaults use Piper for a local neural British-English voice and
+# ALSA playback through the system default audio output. espeak-ng remains
+# installed as a simple fallback backend.
+#
+# If your vintage handset is a USB audio adapter, find its ALSA device with:
+#   aplay -l
+# Then add for example:
+#   --audio-device plughw:1,0
+SPEAKING_CLOCK_ARGS="--interval 10 --backend piper --player aplay --voice en_GB-alba-medium --piper-url http://127.0.0.1:5000/ --piper-data-dir /opt/speaking-clock/voices --volume 100 --require-sync"
 EOF
   fi
+
+  cat >/etc/systemd/system/speaking-clock-piper.service <<EOF
+[Unit]
+Description=Piper TTS HTTP server for speaking-clock
+Documentation=https://github.com/OHF-Voice/piper1-gpl
+After=network.target
+
+[Service]
+Type=simple
+User=${CLOCK_USER}
+WorkingDirectory=${CLOCK_HOME}
+Environment=PYTHONUNBUFFERED=1
+ExecStart=${INSTALL_DIR}/venv/bin/python -m piper.http_server -m ${PIPER_VOICE} --data-dir ${INSTALL_DIR}/voices --host 127.0.0.1 --port 5000
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
+EOF
 
   cat >/etc/systemd/system/speaking-clock.service <<EOF
 [Unit]
 Description=Telephone-style speaking clock
 Documentation=file:${INSTALL_DIR}/speaking_clock.py
-After=network-online.target sound.target time-sync.target
-Wants=network-online.target sound.target time-sync.target
+After=network-online.target sound.target time-sync.target speaking-clock-piper.service
+Wants=network-online.target sound.target time-sync.target speaking-clock-piper.service
 
 [Service]
 Type=simple
@@ -152,8 +235,10 @@ EOF
 }
 
 configure_service() {
-  log "enabling speaking-clock.service"
+  log "enabling speaking clock services"
   systemctl daemon-reload
+  systemctl enable speaking-clock-piper.service
+  systemctl restart speaking-clock-piper.service
   systemctl enable speaking-clock.service
   systemctl restart speaking-clock.service
 }
@@ -163,6 +248,7 @@ main() {
   install_packages
   configure_time_sync
   ensure_clock_user
+  install_piper
   install_runtime_files
   configure_service
 
