@@ -12,8 +12,13 @@ substitutions:
   timezone: !secret timezone
 
 wifi:
-  ssid: "${wifi_ssid}"
-  password: "${wifi_password}"
+  networks:
+    - ssid: "${wifi_ssid}"
+      password: "${wifi_password}"
+    - ssid: "emf"
+      eap:
+        username: "emf"
+        password: "emf"
 
 web_server:
   port: 80

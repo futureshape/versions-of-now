@@ -20,9 +20,7 @@ substitutions:
   key1_pin: GPIO17
 
 packages:
-  # Pico W keeps shared Wi-Fi, OTA, and SNTP, but skips web_server to avoid
-  # pulling ESPAsyncWebServer into the RP2040/Arduino build.
-  network: !include shared/network-no-web.yaml
+  network: !include shared/network-pico.yaml
 
 esphome:
   name: "${name}"

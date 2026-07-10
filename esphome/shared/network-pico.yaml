@@ -1,6 +1,8 @@
-# Shared network settings for ESPHome devices that should not run the local
-# web server. This is useful for RP2040/Pico W targets where web_server pulls in
-# Arduino async-web dependencies that are not needed for the installation.
+# Shared network settings for ESPHome Pico W devices.
+#
+# Pico W skips the local web server to avoid pulling ESPAsyncWebServer into the
+# RP2040/Arduino build. ESPHome enterprise Wi-Fi is not available on RP2040, so
+# the EMF event network uses the open emf-open SSID.
 #
 # Values are loaded from esphome/secrets.yaml, which is gitignored. Copy
 # esphome/secrets.example.yaml to esphome/secrets.yaml before validating or
@@ -12,8 +14,10 @@ substitutions:
   timezone: !secret timezone
 
 wifi:
-  ssid: "${wifi_ssid}"
-  password: "${wifi_password}"
+  networks:
+    - ssid: "${wifi_ssid}"
+      password: "${wifi_password}"
+    - ssid: "emf-open"
 
 ota:
   - platform: esphome

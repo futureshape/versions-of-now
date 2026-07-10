@@ -77,7 +77,7 @@ ESPHome's built-in `waveshare_epaper` 4.2 inch models use different command
 paths, including the older 4.2 inch sequence and the `EPD_4in2b_V2` B/R/BWR
 sequence. Those did not match the demo that worked on this hardware.
 
-Unlike the ESP32 clocks, this Pico W config uses `shared/network-no-web.yaml`.
+Unlike the ESP32 clocks, this Pico W config uses `shared/network-pico.yaml`.
 It keeps Wi-Fi, OTA, and SNTP, but deliberately omits `web_server` so the RP2040
 Arduino build does not pull in `ESPAsyncWebServer` and its extra PlatformIO
 platform dependency checks.
