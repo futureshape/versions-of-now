@@ -221,7 +221,7 @@ The current startup/debug font is a public-domain 5x7 BDF from
 
 `esphome/shared/network.yaml` currently centralizes:
 
-- Wi-Fi credentials
+- Wi-Fi networks and credentials
 - Web-server authentication
 - OTA password
 - NTP time source
