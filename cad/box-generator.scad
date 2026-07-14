@@ -121,11 +121,12 @@ screw_leadin_depth = 1.5;
 // pegboard alignment test.
 test_alignment_mode = false;
 
-// Print only a small plate with the display cutout and display
-// mounting holes for a quick display fit test.
+// Print only a small plate with the display cutout and optional
+// display mounting holes for a quick display fit test.
 test_display_mode = false;
 
-// Extra material around the display cutout and holes in test_display_mode
+// Extra material around the display cutout and optional holes
+// in test_display_mode.
 test_display_plate_margin = 5;
 
 $fn = 48;
@@ -542,10 +543,6 @@ assert(
 assert(
     !test_display_mode || front_cutout_enabled,
     "test_display_mode requires front_cutout_enabled"
-);
-assert(
-    !test_display_mode || display_corner_holes_enabled,
-    "test_display_mode requires display_corner_holes_enabled"
 );
 assert(
     holes_y == 1 ||
