@@ -398,306 +398,82 @@
         color: var(--ink-soft);
       }
 
-      .media-slot {
-        min-height: 300px;
+      .clock-gallery {
         overflow: hidden;
         display: grid;
-        grid-template-rows: minmax(210px, 1fr) auto;
-        border: 1px dashed var(--line-strong);
+        gap: 10px;
+        border: 1px solid var(--line);
         border-radius: 8px;
+        padding: 10px;
         background: var(--surface);
         box-shadow: 0 14px 38px var(--shadow);
       }
 
-      .media-art {
+      .gallery-frame {
         position: relative;
-        min-height: 220px;
         overflow: hidden;
-        display: grid;
-        place-items: center;
-        isolation: isolate;
-      }
-
-      .media-art::before,
-      .media-art::after {
-        content: "";
-        position: absolute;
-        pointer-events: none;
-      }
-
-      .media-note {
-        display: grid;
-        gap: 3px;
-        padding: 13px 15px;
-        border-top: 1px solid var(--line);
-        background: rgba(255, 255, 255, 0.84);
-      }
-
-      .media-note strong {
-        font-size: 0.94rem;
-      }
-
-      .media-note span {
-        color: var(--muted);
-        font-size: 0.9rem;
-      }
-
-      .art-matrix {
-        background:
-          radial-gradient(circle, rgba(255, 81, 49, 0.22) 0 18%, transparent 21%) 0 0 / 17px 17px,
-          #17100e;
-      }
-
-      .art-matrix::before {
-        inset: 26px;
-        border: 1px solid rgba(255, 110, 70, 0.24);
-        border-radius: 8px;
-        box-shadow: inset 0 0 28px rgba(0, 0, 0, 0.74);
-      }
-
-      .art-matrix .sample {
-        color: #ff6d49;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-        font-size: 2rem;
-        text-shadow: 0 0 18px rgba(255, 109, 73, 0.7);
-      }
-
-      .art-crt {
-        background:
-          repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.07) 0 1px, transparent 1px 4px),
-          #050505;
-      }
-
-      .art-crt::before {
-        left: 50%;
-        top: 50%;
-        width: 164px;
-        height: 164px;
-        border: 9px solid #f6f9fb;
-        border-radius: 50%;
-        box-shadow: 0 0 34px rgba(246, 249, 251, 0.2);
-        transform: translate(-50%, -50%);
-      }
-
-      .art-crt::after {
-        left: 50%;
-        top: 50%;
-        width: 92px;
-        height: 92px;
-        border-left: 7px solid #f6f9fb;
-        border-bottom: 7px solid #f6f9fb;
-        transform: translate(-22%, -34%) rotate(-18deg);
-        transform-origin: bottom left;
-      }
-
-      .art-oled {
-        background: #020403;
-      }
-
-      .art-oled::before {
-        inset: 26px;
-        border: 1px solid rgba(86, 235, 190, 0.26);
-        border-radius: 7px;
-        background:
-          radial-gradient(circle at 18% 28%, rgba(86, 235, 190, 0.8) 0 2px, transparent 3px),
-          radial-gradient(circle at 82% 22%, rgba(242, 169, 71, 0.8) 0 3px, transparent 4px),
-          radial-gradient(circle at 69% 73%, rgba(86, 235, 190, 0.5) 0 3px, transparent 4px),
-          linear-gradient(90deg, rgba(86, 235, 190, 0.13), transparent 34%);
-      }
-
-      .art-oled .sample {
-        color: #77f5cf;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-        font-size: 2.15rem;
-        text-shadow: 0 0 22px rgba(119, 245, 207, 0.72);
-      }
-
-      .art-epaper {
-        background:
-          repeating-linear-gradient(6deg, rgba(22, 26, 24, 0.045) 0 1px, transparent 1px 12px),
-          #ece9dd;
-      }
-
-      .art-epaper::before {
-        inset: 28px;
-        border: 1px solid #b9b4a4;
-        border-radius: 4px;
-        background: #f8f6ec;
-      }
-
-      .art-epaper .sample {
-        position: relative;
-        color: #151515;
-        font-family: "Comic Sans MS", "Bradley Hand", cursive;
-        font-size: 3.2rem;
-        line-height: 1;
-      }
-
-      .art-lcd {
-        background: #d3dcc8;
-      }
-
-      .art-lcd::before {
-        inset: 42px 50px;
-        border: 7px solid #273020;
         border-radius: 6px;
-        background:
-          repeating-linear-gradient(90deg, rgba(39, 48, 32, 0.08) 0 1px, transparent 1px 7px),
-          #b9c5ae;
+        background: var(--surface-quiet);
+        aspect-ratio: 3 / 2;
       }
 
-      .art-lcd .sample {
-        position: relative;
-        color: #23301e;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-        font-size: 3rem;
-        font-weight: 800;
+      .gallery-items,
+      .gallery-items img {
+        width: 100%;
+        height: 100%;
       }
 
-      .art-segment {
-        background:
-          radial-gradient(circle at 50% 40%, rgba(177, 61, 72, 0.18), transparent 42%),
-          #17090b;
-      }
-
-      .art-segment .sample {
-        color: #ff354e;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-        font-size: 2.9rem;
-        font-weight: 800;
-        text-shadow: 0 0 18px rgba(255, 53, 78, 0.58);
-      }
-
-      .art-flip {
-        gap: 8px;
-        grid-template-columns: repeat(4, 58px);
-        background: #171614;
-      }
-
-      .flip-card {
-        position: relative;
-        min-height: 96px;
-        display: grid;
-        place-items: center;
-        border: 1px solid #4c443c;
-        border-radius: 6px;
-        background:
-          linear-gradient(#2b2824 0 49%, #0e0d0c 50% 100%);
-        color: #f6efe5;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-        font-size: 2.4rem;
-        font-weight: 760;
-      }
-
-      .flip-card::after {
-        content: "";
-        position: absolute;
-        left: 0;
-        right: 0;
-        top: 50%;
-        border-top: 1px solid #5f564d;
-      }
-
-      .art-meter {
-        grid-template-columns: repeat(2, minmax(110px, 150px));
-        gap: 18px;
-        background: #f4f3ef;
-      }
-
-      .meter-face {
-        position: relative;
-        aspect-ratio: 1;
-        border: 1px solid #bfc7be;
-        border-radius: 8px;
-        background:
-          radial-gradient(circle at 50% 72%, #1b1c1a 0 5px, transparent 6px),
-          radial-gradient(circle at 50% 72%, transparent 0 58px, #dfe4df 59px 60px, transparent 61px),
-          #fbfaf7;
-      }
-
-      .meter-face::before {
-        content: "";
-        position: absolute;
-        left: 50%;
-        bottom: 28%;
-        width: 3px;
-        height: 56%;
-        background: var(--red);
-        transform-origin: bottom center;
-      }
-
-      .meter-face:first-child::before {
-        transform: rotate(-42deg);
-      }
-
-      .meter-face:last-child::before {
-        transform: rotate(34deg);
-      }
-
-      .art-vfd {
-        background:
-          radial-gradient(circle at 50% 55%, rgba(66, 236, 221, 0.22), transparent 48%),
-          #031312;
-      }
-
-      .art-vfd .sample {
-        display: grid;
-        gap: 6px;
-        color: #51f5e7;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-        font-size: 2rem;
-        text-align: center;
-        text-shadow: 0 0 20px rgba(81, 245, 231, 0.72);
-      }
-
-      .art-dali {
-        background:
-          radial-gradient(circle at 45% 45%, rgba(28, 91, 178, 0.2), transparent 52%),
-          #050608;
-      }
-
-      .art-dali .sample {
-        color: #42b9ff;
-        font-family: Georgia, "Times New Roman", serif;
-        font-size: 4.1rem;
-        font-style: italic;
-        text-shadow: 0 0 18px rgba(66, 185, 255, 0.48);
-        transform: skewX(-8deg);
-      }
-
-      .art-audio {
-        background: #111512;
-      }
-
-      .wave {
-        width: min(78%, 340px);
-        height: 108px;
-        display: grid;
-        grid-template-columns: repeat(31, 1fr);
-        align-items: center;
-        gap: 5px;
-      }
-
-      .wave span {
+      .gallery-items img {
         display: block;
-        min-height: 8px;
+        object-fit: contain;
+        background: var(--surface-quiet);
+      }
+
+      .gallery-items img[hidden] {
+        display: none;
+      }
+
+      .gallery-control {
+        position: absolute;
+        top: 50%;
+        width: 40px;
+        height: 40px;
+        display: grid;
+        place-items: center;
+        border: 1px solid rgba(255, 255, 255, 0.78);
         border-radius: 999px;
-        background: #f0c35b;
-        box-shadow: 0 0 12px rgba(240, 195, 91, 0.42);
+        background: rgba(18, 22, 20, 0.74);
+        color: #ffffff;
+        cursor: pointer;
+        font: inherit;
+        font-size: 1.1rem;
+        font-weight: 760;
+        transform: translateY(-50%);
       }
 
-      .wave span:nth-child(3n) {
-        height: 82px;
+      .gallery-control:hover,
+      .gallery-control:focus-visible {
+        background: rgba(18, 22, 20, 0.92);
       }
 
-      .wave span:nth-child(3n + 1) {
-        height: 38px;
-        background: #72d6b3;
+      .gallery-control.prev {
+        left: 10px;
       }
 
-      .wave span:nth-child(5n) {
-        height: 104px;
-        background: #d96b62;
+      .gallery-control.next {
+        right: 10px;
+      }
+
+      .gallery-caption {
+        display: grid;
+        gap: 2px;
+        color: var(--ink-soft);
+        font-size: 0.92rem;
+      }
+
+      .gallery-caption strong {
+        color: var(--ink);
+        font-size: 0.95rem;
       }
 
       .tech-grid {
@@ -768,10 +544,6 @@
           animation: crtScan 4s linear infinite;
         }
 
-        .art-oled .sample,
-        .art-dali .sample {
-          animation: softPulse 2.8s ease-in-out infinite alternate;
-        }
       }
 
       @keyframes matrixDrift {
@@ -789,12 +561,6 @@
       @keyframes crtScan {
         to {
           background-position: 0 24px, 0 0, 0 0;
-        }
-      }
-
-      @keyframes softPulse {
-        to {
-          opacity: 0.72;
         }
       }
 
@@ -888,21 +654,9 @@
           padding: 34px 0;
         }
 
-        .media-slot {
-          min-height: 260px;
-        }
-
-        .art-flip {
-          grid-template-columns: repeat(4, 46px);
-        }
-
-        .flip-card {
-          min-height: 82px;
-          font-size: 1.85rem;
-        }
-
-        .art-meter {
-          grid-template-columns: repeat(2, minmax(92px, 1fr));
+        .gallery-control {
+          width: 36px;
+          height: 36px;
         }
       }
     </style>
@@ -961,8 +715,8 @@
           <span class="clock-time" data-clock-format="local">--:--:--</span>
         </div>
         <div class="hero-clock meter">
-          <strong>Same now</strong>
-          <span class="clock-time" data-clock-format="local">--:--:--</span>
+          <strong>Split flap</strong>
+          <span class="clock-time" data-clock-format="short">--:--</span>
         </div>
       </div>
 
@@ -1016,9 +770,10 @@
           <div class="section-head">
             <h2 id="clocks-title">The Clocks</h2>
             <p>
-              Each section below has a single media slot for a final photograph, animated GIF, or short
-              loop of the physical clock. The placeholders are deliberately sized and framed so the page
-              can stay intact as the real documentation arrives.
+              Each installation has a compact gallery beside it for build photos, final stills, or a
+              small sequence of details. The first image is a sourced display or reference image;
+              the remaining placeholders from the local <code>images/</code> folder are ready for
+              real documentation as it arrives.
             </p>
           </div>
 
@@ -1043,17 +798,28 @@
                 </p>
                 <div class="source-links" aria-label="Dot matrix sources">
                   <a href="https://en.wikipedia.org/wiki/Dot-matrix_display" rel="noopener noreferrer">Dot-matrix displays</a>
+                  <a href="https://www.az-delivery.uk/products/4-x-64er-led-matrix-display" rel="noopener noreferrer">MAX7219 8x32 module</a>
                   <a href="https://www.analog.com/en/products/max7219.html" rel="noopener noreferrer">MAX7219 driver</a>
                 </div>
               </div>
-              <figure class="media-slot">
-                <!-- Media suggestion: assets/clocks/8x32-dot-matrix-clock.jpg, .gif, or .mp4 -->
-                <div class="media-art art-matrix" aria-hidden="true">
-                  <span class="sample">12:34 56</span>
+              <figure class="clock-gallery" data-gallery>
+                <!-- Add your own photos as images/dot-matrix-clock/01.jpg, 02.jpg, 03.jpg. -->
+                <div class="gallery-frame">
+                  <div class="gallery-items">
+                    <img data-gallery-item src="images/dot-matrix-clock/reference.png" alt="MAX7219 8x32 red LED dot matrix module">
+                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="8x32 Dot Matrix Clock gallery image 2">
+                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="8x32 Dot Matrix Clock gallery image 3">
+                  </div>
+                  <button class="gallery-control prev" type="button" data-gallery-prev aria-label="Previous 8x32 Dot Matrix Clock image">
+                    <span aria-hidden="true">&lt;</span>
+                  </button>
+                  <button class="gallery-control next" type="button" data-gallery-next aria-label="Next 8x32 Dot Matrix Clock image">
+                    <span aria-hidden="true">&gt;</span>
+                  </button>
                 </div>
-                <figcaption class="media-note">
-                  <strong>Photo or animation placeholder</strong>
-                  <span>8x32 dot matrix clock</span>
+                <figcaption class="gallery-caption">
+                  <strong>8x32 Dot Matrix Clock gallery</strong>
+                  <span>Installation photos and detail views.</span>
                 </figcaption>
               </figure>
             </article>
@@ -1079,14 +845,27 @@
                 <div class="source-links" aria-label="CRT sources">
                   <a href="https://en.wikipedia.org/wiki/Cathode-ray_tube" rel="noopener noreferrer">Cathode-ray tubes</a>
                   <a href="https://en.wikipedia.org/wiki/Composite_video" rel="noopener noreferrer">Composite video</a>
+                  <a href="https://commons.wikimedia.org/wiki/File:Television_set_from_the_early_1950s.jpg" rel="noopener noreferrer">Reference CRT image</a>
                 </div>
               </div>
-              <figure class="media-slot">
-                <!-- Media suggestion: assets/clocks/crt-bbc-clock.jpg, .gif, or .mp4 -->
-                <div class="media-art art-crt" aria-hidden="true"></div>
-                <figcaption class="media-note">
-                  <strong>Photo or animation placeholder</strong>
-                  <span>CRT BBC clock</span>
+              <figure class="clock-gallery" data-gallery>
+                <!-- Add your own photos as images/crt-bbc-clock/01.jpg, 02.jpg, 03.jpg. -->
+                <div class="gallery-frame">
+                  <div class="gallery-items">
+                    <img data-gallery-item src="images/crt-bbc-clock/reference.jpg" alt="Representative vintage CRT television set">
+                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="CRT BBC Clock gallery image 2">
+                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="CRT BBC Clock gallery image 3">
+                  </div>
+                  <button class="gallery-control prev" type="button" data-gallery-prev aria-label="Previous CRT BBC Clock image">
+                    <span aria-hidden="true">&lt;</span>
+                  </button>
+                  <button class="gallery-control next" type="button" data-gallery-next aria-label="Next CRT BBC Clock image">
+                    <span aria-hidden="true">&gt;</span>
+                  </button>
+                </div>
+                <figcaption class="gallery-caption">
+                  <strong>CRT BBC Clock gallery</strong>
+                  <span>Installation photos and detail views.</span>
                 </figcaption>
               </figure>
             </article>
@@ -1111,17 +890,28 @@
                 </p>
                 <div class="source-links" aria-label="OLED sources">
                   <a href="https://en.wikipedia.org/wiki/OLED" rel="noopener noreferrer">OLED</a>
+                  <a href="https://newhavendisplay.com/2-8-inch-blue-graphic-oled-module/" rel="noopener noreferrer">2.8 inch SSD1322 OLED module</a>
                   <a href="https://www.solomon-systech.com/product/ssd1322/" rel="noopener noreferrer">SSD1322 controller</a>
                 </div>
               </div>
-              <figure class="media-slot">
-                <!-- Media suggestion: assets/clocks/256x64-oled-pinball-clock.jpg, .gif, or .mp4 -->
-                <div class="media-art art-oled" aria-hidden="true">
-                  <span class="sample">12:34:56</span>
+              <figure class="clock-gallery" data-gallery>
+                <!-- Add your own photos as images/oled-pinball-clock/01.jpg, 02.jpg, 03.jpg. -->
+                <div class="gallery-frame">
+                  <div class="gallery-items">
+                    <img data-gallery-item src="images/oled-pinball-clock/reference.jpg" alt="Newhaven 2.8 inch 256x64 SSD1322 OLED module">
+                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="256x64 OLED Pinball Clock gallery image 2">
+                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="256x64 OLED Pinball Clock gallery image 3">
+                  </div>
+                  <button class="gallery-control prev" type="button" data-gallery-prev aria-label="Previous 256x64 OLED Pinball Clock image">
+                    <span aria-hidden="true">&lt;</span>
+                  </button>
+                  <button class="gallery-control next" type="button" data-gallery-next aria-label="Next 256x64 OLED Pinball Clock image">
+                    <span aria-hidden="true">&gt;</span>
+                  </button>
                 </div>
-                <figcaption class="media-note">
-                  <strong>Photo or animation placeholder</strong>
-                  <span>256x64 OLED pinball clock</span>
+                <figcaption class="gallery-caption">
+                  <strong>256x64 OLED Pinball Clock gallery</strong>
+                  <span>Installation photos and detail views.</span>
                 </figcaption>
               </figure>
             </article>
@@ -1150,14 +940,24 @@
                   <a href="https://www.waveshare.com/pico-epaper-4.2.htm" rel="noopener noreferrer">Pico-ePaper-4.2</a>
                 </div>
               </div>
-              <figure class="media-slot">
-                <!-- Media suggestion: assets/clocks/pico-epaper-clock.jpg, .gif, or .mp4 -->
-                <div class="media-art art-epaper" aria-hidden="true">
-                  <span class="sample">12:34</span>
+              <figure class="clock-gallery" data-gallery>
+                <!-- Add your own photos as images/pico-epaper-clock/01.jpg, 02.jpg, 03.jpg. -->
+                <div class="gallery-frame">
+                  <div class="gallery-items">
+                    <img data-gallery-item src="images/pico-epaper-clock/reference.jpg" alt="Waveshare Pico-ePaper-4.2 display module">
+                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="Pico ePaper Clock gallery image 2">
+                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="Pico ePaper Clock gallery image 3">
+                  </div>
+                  <button class="gallery-control prev" type="button" data-gallery-prev aria-label="Previous Pico ePaper Clock image">
+                    <span aria-hidden="true">&lt;</span>
+                  </button>
+                  <button class="gallery-control next" type="button" data-gallery-next aria-label="Next Pico ePaper Clock image">
+                    <span aria-hidden="true">&gt;</span>
+                  </button>
                 </div>
-                <figcaption class="media-note">
-                  <strong>Photo or animation placeholder</strong>
-                  <span>Pico ePaper clock</span>
+                <figcaption class="gallery-caption">
+                  <strong>Pico ePaper Clock gallery</strong>
+                  <span>Installation photos and detail views.</span>
                 </figcaption>
               </figure>
             </article>
@@ -1181,18 +981,29 @@
                   UTC+1, and does not observe daylight saving time.
                 </p>
                 <div class="source-links" aria-label="LCD and beat time sources">
-                  <a href="https://learn.adafruit.com/nokia-5110-3310-monochrome-lcd" rel="noopener noreferrer">Nokia 5110 LCD</a>
+                  <a href="https://www.adafruit.com/product/338" rel="noopener noreferrer">Nokia 5110 LCD module</a>
+                  <a href="https://learn.adafruit.com/nokia-5110-3310-monochrome-lcd" rel="noopener noreferrer">Adafruit guide</a>
                   <a href="https://en.wikipedia.org/wiki/Swatch_Internet_Time" rel="noopener noreferrer">Swatch Internet Time</a>
                 </div>
               </div>
-              <figure class="media-slot">
-                <!-- Media suggestion: assets/clocks/nokia-beats-clock.jpg, .gif, or .mp4 -->
-                <div class="media-art art-lcd" aria-hidden="true">
-                  <span class="sample">@734</span>
+              <figure class="clock-gallery" data-gallery>
+                <!-- Add your own photos as images/nokia-beats-clock/01.jpg, 02.jpg, 03.jpg. -->
+                <div class="gallery-frame">
+                  <div class="gallery-items">
+                    <img data-gallery-item src="images/nokia-beats-clock/reference.jpg" alt="Nokia 5110 PCD8544 monochrome LCD module">
+                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="PCD8544 Swatch Internet Time Clock gallery image 2">
+                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="PCD8544 Swatch Internet Time Clock gallery image 3">
+                  </div>
+                  <button class="gallery-control prev" type="button" data-gallery-prev aria-label="Previous PCD8544 Swatch Internet Time Clock image">
+                    <span aria-hidden="true">&lt;</span>
+                  </button>
+                  <button class="gallery-control next" type="button" data-gallery-next aria-label="Next PCD8544 Swatch Internet Time Clock image">
+                    <span aria-hidden="true">&gt;</span>
+                  </button>
                 </div>
-                <figcaption class="media-note">
-                  <strong>Photo or animation placeholder</strong>
-                  <span>PCD8544 Swatch Internet Time clock</span>
+                <figcaption class="gallery-caption">
+                  <strong>PCD8544 Swatch Internet Time Clock gallery</strong>
+                  <span>Installation photos and detail views.</span>
                 </figcaption>
               </figure>
             </article>
@@ -1217,17 +1028,28 @@
                 </p>
                 <div class="source-links" aria-label="Seven-segment sources">
                   <a href="https://en.wikipedia.org/wiki/Seven-segment_display" rel="noopener noreferrer">Seven-segment displays</a>
+                  <a href="https://www.az-delivery.uk/products/tm1637-6-digit-blaue-led-anzeige-7-segment-display-modul-mit-0-56-zoll-5v-anzeigemodul-kompatibel-mit-raspberry-pi" rel="noopener noreferrer">TM1637 6-digit module</a>
                   <a href="https://en.wikipedia.org/wiki/LED_display" rel="noopener noreferrer">LED displays</a>
                 </div>
               </div>
-              <figure class="media-slot">
-                <!-- Media suggestion: assets/clocks/tm1637-clock.jpg, .gif, or .mp4 -->
-                <div class="media-art art-segment" aria-hidden="true">
-                  <span class="sample">12.34.56</span>
+              <figure class="clock-gallery" data-gallery>
+                <!-- Add your own photos as images/tm1637-clock/01.jpg, 02.jpg, 03.jpg. -->
+                <div class="gallery-frame">
+                  <div class="gallery-items">
+                    <img data-gallery-item src="images/tm1637-clock/reference.jpg" alt="Six-digit TM1637 seven-segment LED module">
+                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="TM1637 6-Digit Clock gallery image 2">
+                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="TM1637 6-Digit Clock gallery image 3">
+                  </div>
+                  <button class="gallery-control prev" type="button" data-gallery-prev aria-label="Previous TM1637 6-Digit Clock image">
+                    <span aria-hidden="true">&lt;</span>
+                  </button>
+                  <button class="gallery-control next" type="button" data-gallery-next aria-label="Next TM1637 6-Digit Clock image">
+                    <span aria-hidden="true">&gt;</span>
+                  </button>
                 </div>
-                <figcaption class="media-note">
-                  <strong>Photo or animation placeholder</strong>
-                  <span>TM1637 6-digit clock</span>
+                <figcaption class="gallery-caption">
+                  <strong>TM1637 6-Digit Clock gallery</strong>
+                  <span>Installation photos and detail views.</span>
                 </figcaption>
               </figure>
             </article>
@@ -1252,21 +1074,30 @@
                   wiring.
                 </p>
                 <div class="source-links" aria-label="Flip digit sources">
+                  <a href="https://flipdots.com/en/products-services/small-7-segment-displays/" rel="noopener noreferrer">AlfaZeta small 7-segment displays</a>
                   <a href="https://en.wikipedia.org/wiki/Seven-segment_display" rel="noopener noreferrer">Seven-segment displays</a>
                   <a href="https://en.wikipedia.org/wiki/RS-485" rel="noopener noreferrer">RS-485</a>
+                  <a href="docs/FlipDigitSSB_rel2.pdf">FlipDigitSSB protocol PDF</a>
                 </div>
               </div>
-              <figure class="media-slot">
-                <!-- Media suggestion: assets/clocks/flpidigits-clock.jpg, .gif, or .mp4 -->
-                <div class="media-art art-flip" aria-hidden="true">
-                  <span class="flip-card">1</span>
-                  <span class="flip-card">2</span>
-                  <span class="flip-card">3</span>
-                  <span class="flip-card">4</span>
+              <figure class="clock-gallery" data-gallery>
+                <!-- Add your own photos as images/flip-digits-clock/01.jpg, 02.jpg, 03.jpg. -->
+                <div class="gallery-frame">
+                  <div class="gallery-items">
+                    <img data-gallery-item src="images/flip-digits-clock/reference.png" alt="AlfaZeta small electromagnetic seven-segment display module">
+                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="Flip Digits Clock gallery image 2">
+                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="Flip Digits Clock gallery image 3">
+                  </div>
+                  <button class="gallery-control prev" type="button" data-gallery-prev aria-label="Previous Flip Digits Clock image">
+                    <span aria-hidden="true">&lt;</span>
+                  </button>
+                  <button class="gallery-control next" type="button" data-gallery-next aria-label="Next Flip Digits Clock image">
+                    <span aria-hidden="true">&gt;</span>
+                  </button>
                 </div>
-                <figcaption class="media-note">
-                  <strong>Photo or animation placeholder</strong>
-                  <span>Flip digits clock</span>
+                <figcaption class="gallery-caption">
+                  <strong>Flip Digits Clock gallery</strong>
+                  <span>Installation photos and detail views.</span>
                 </figcaption>
               </figure>
             </article>
@@ -1291,18 +1122,28 @@
                 </p>
                 <div class="source-links" aria-label="Analog meter sources">
                   <a href="https://en.wikipedia.org/wiki/Galvanometer" rel="noopener noreferrer">Galvanometers</a>
+                  <a href="https://www.adafruit.com/product/3990" rel="noopener noreferrer">Large 5V analog panel meter</a>
                   <a href="https://www.microchip.com/en-us/product/mcp4728" rel="noopener noreferrer">MCP4728 DAC</a>
                 </div>
               </div>
-              <figure class="media-slot">
-                <!-- Media suggestion: assets/clocks/analog-panel-meter-clock.jpg, .gif, or .mp4 -->
-                <div class="media-art art-meter" aria-hidden="true">
-                  <span class="meter-face"></span>
-                  <span class="meter-face"></span>
+              <figure class="clock-gallery" data-gallery>
+                <!-- Add your own photos as images/analog-panel-meter-clock/01.jpg, 02.jpg, 03.jpg. -->
+                <div class="gallery-frame">
+                  <div class="gallery-items">
+                    <img data-gallery-item src="images/analog-panel-meter-clock/sifam-panel-meter.jpg" alt="Large 5V analog panel meter">
+                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="Analog Panel Meter Clock gallery image 2">
+                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="Analog Panel Meter Clock gallery image 3">
+                  </div>
+                  <button class="gallery-control prev" type="button" data-gallery-prev aria-label="Previous Analog Panel Meter Clock image">
+                    <span aria-hidden="true">&lt;</span>
+                  </button>
+                  <button class="gallery-control next" type="button" data-gallery-next aria-label="Next Analog Panel Meter Clock image">
+                    <span aria-hidden="true">&gt;</span>
+                  </button>
                 </div>
-                <figcaption class="media-note">
-                  <strong>Photo or animation placeholder</strong>
-                  <span>Analog panel meter clock</span>
+                <figcaption class="gallery-caption">
+                  <strong>Analog Panel Meter Clock gallery</strong>
+                  <span>Installation photos and detail views.</span>
                 </figcaption>
               </figure>
             </article>
@@ -1330,17 +1171,24 @@
                   <a href="https://www.manualslib.com/manual/1146241/Wincor-Nixdorf-Ba63.html" rel="noopener noreferrer">BA63 manual</a>
                 </div>
               </div>
-              <figure class="media-slot">
-                <!-- Media suggestion: assets/clocks/vfd-clock.jpg, .gif, or .mp4 -->
-                <div class="media-art art-vfd" aria-hidden="true">
-                  <span class="sample">
-                    <span>12:34:56</span>
-                    <span>======----</span>
-                  </span>
+              <figure class="clock-gallery" data-gallery>
+                <!-- Add your own photos as images/vfd-clock/01.jpg, 02.jpg, 03.jpg. -->
+                <div class="gallery-frame">
+                  <div class="gallery-items">
+                    <img data-gallery-item src="images/vfd-clock/reference.jpg" alt="Wincor Nixdorf BA63 vacuum fluorescent customer display">
+                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="VFD Clock gallery image 2">
+                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="VFD Clock gallery image 3">
+                  </div>
+                  <button class="gallery-control prev" type="button" data-gallery-prev aria-label="Previous VFD Clock image">
+                    <span aria-hidden="true">&lt;</span>
+                  </button>
+                  <button class="gallery-control next" type="button" data-gallery-next aria-label="Next VFD Clock image">
+                    <span aria-hidden="true">&gt;</span>
+                  </button>
                 </div>
-                <figcaption class="media-note">
-                  <strong>Photo or animation placeholder</strong>
-                  <span>VFD clock</span>
+                <figcaption class="gallery-caption">
+                  <strong>VFD Clock gallery</strong>
+                  <span>Installation photos and detail views.</span>
                 </figcaption>
               </figure>
             </article>
@@ -1368,14 +1216,24 @@
                   <a href="https://www.jwz.org/xdaliclock/" rel="noopener noreferrer">Dali Clock</a>
                 </div>
               </div>
-              <figure class="media-slot">
-                <!-- Media suggestion: assets/clocks/xdaliclock-hyperpixel-square.jpg, .gif, or .mp4 -->
-                <div class="media-art art-dali" aria-hidden="true">
-                  <span class="sample">12:34</span>
+              <figure class="clock-gallery" data-gallery>
+                <!-- Add your own photos as images/dali-clock/01.jpg, 02.jpg, 03.jpg. -->
+                <div class="gallery-frame">
+                  <div class="gallery-items">
+                    <img data-gallery-item src="images/dali-clock/reference.jpg" alt="Pimoroni HyperPixel 4.0 Square display">
+                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="Dali Clock on HyperPixel 4.0 Square gallery image 2">
+                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="Dali Clock on HyperPixel 4.0 Square gallery image 3">
+                  </div>
+                  <button class="gallery-control prev" type="button" data-gallery-prev aria-label="Previous Dali Clock on HyperPixel 4.0 Square image">
+                    <span aria-hidden="true">&lt;</span>
+                  </button>
+                  <button class="gallery-control next" type="button" data-gallery-next aria-label="Next Dali Clock on HyperPixel 4.0 Square image">
+                    <span aria-hidden="true">&gt;</span>
+                  </button>
                 </div>
-                <figcaption class="media-note">
-                  <strong>Photo or animation placeholder</strong>
-                  <span>Dali Clock on HyperPixel 4.0 Square</span>
+                <figcaption class="gallery-caption">
+                  <strong>Dali Clock on HyperPixel 4.0 Square gallery</strong>
+                  <span>Installation photos and detail views.</span>
                 </figcaption>
               </figure>
             </article>
@@ -1400,25 +1258,74 @@
                 </p>
                 <div class="source-links" aria-label="Speaking clock sources">
                   <a href="https://en.wikipedia.org/wiki/Speaking_clock" rel="noopener noreferrer">Speaking clocks</a>
-                  <a href="https://github.com/espeak-ng/espeak-ng" rel="noopener noreferrer">eSpeak NG</a>
+                  <a href="https://github.com/OHF-Voice/piper1-gpl" rel="noopener noreferrer">Piper TTS</a>
+                  <a href="https://thepihut.com/products/usb-audio-adapter-works-with-raspberry-pi" rel="noopener noreferrer">USB audio adapter</a>
                 </div>
               </div>
-              <figure class="media-slot">
-                <!-- Media suggestion: assets/clocks/speaking-clock.jpg, .gif, or .mp4 -->
-                <div class="media-art art-audio" aria-hidden="true">
-                  <span class="wave">
-                    <span></span><span></span><span></span><span></span><span></span>
-                    <span></span><span></span><span></span><span></span><span></span>
-                    <span></span><span></span><span></span><span></span><span></span>
-                    <span></span><span></span><span></span><span></span><span></span>
-                    <span></span><span></span><span></span><span></span><span></span>
-                    <span></span><span></span><span></span><span></span><span></span>
-                    <span></span>
-                  </span>
+              <figure class="clock-gallery" data-gallery>
+                <!-- Add your own photos as images/speaking-clock/01.jpg, 02.jpg, 03.jpg. -->
+                <div class="gallery-frame">
+                  <div class="gallery-items">
+                    <img data-gallery-item src="images/speaking-clock/reference.jpg" alt="USB audio adapter for Raspberry Pi audio output">
+                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="Speaking Clock gallery image 2">
+                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="Speaking Clock gallery image 3">
+                  </div>
+                  <button class="gallery-control prev" type="button" data-gallery-prev aria-label="Previous Speaking Clock image">
+                    <span aria-hidden="true">&lt;</span>
+                  </button>
+                  <button class="gallery-control next" type="button" data-gallery-next aria-label="Next Speaking Clock image">
+                    <span aria-hidden="true">&gt;</span>
+                  </button>
                 </div>
-                <figcaption class="media-note">
-                  <strong>Photo or animation placeholder</strong>
-                  <span>Speaking clock</span>
+                <figcaption class="gallery-caption">
+                  <strong>Speaking Clock gallery</strong>
+                  <span>Installation photos and detail views.</span>
+                </figcaption>
+              </figure>
+            </article>
+
+            <article class="clock" id="bosch-udw2-split-flap-clock">
+              <div class="clock-copy">
+                <p class="clock-kicker">12 / Split-flap display</p>
+                <h3>Bosch UDW2 Split-Flap Clock</h3>
+                <div class="tech-tags">
+                  <span>Bosch UDW2</span>
+                  <span>Electromechanical flaps</span>
+                  <span>Physical motion</span>
+                </div>
+                <p>
+                  This clock uses a Bosch UDW2 split-flap display, where the time is shown by moving
+                  printed flaps rather than by lighting pixels. Each update is a small mechanical event:
+                  the display has to travel through real positions before the new time settles into view.
+                </p>
+                <p class="trivia">
+                  Trivia: split-flap displays became iconic in railway stations and airports because
+                  they are readable at a distance and make their updates audible. The sound of the
+                  refresh is part of the interface.
+                </p>
+                <div class="source-links" aria-label="Split-flap sources">
+                  <a href="https://en.wikipedia.org/wiki/Split-flap_display" rel="noopener noreferrer">Split-flap displays</a>
+                  <a href="https://en.wikipedia.org/wiki/Robert_Bosch_GmbH" rel="noopener noreferrer">Bosch</a>
+                </div>
+              </div>
+              <figure class="clock-gallery" data-gallery>
+                <!-- Add your own photos as images/bosch-udw2-split-flap-clock/01.jpg, 02.jpg, 03.jpg. -->
+                <div class="gallery-frame">
+                  <div class="gallery-items">
+                    <img data-gallery-item src="images/placeholder-600x400.png" alt="Bosch UDW2 Split-Flap Clock gallery image 1">
+                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="Bosch UDW2 Split-Flap Clock gallery image 2">
+                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="Bosch UDW2 Split-Flap Clock gallery image 3">
+                  </div>
+                  <button class="gallery-control prev" type="button" data-gallery-prev aria-label="Previous Bosch UDW2 Split-Flap Clock image">
+                    <span aria-hidden="true">&lt;</span>
+                  </button>
+                  <button class="gallery-control next" type="button" data-gallery-next aria-label="Next Bosch UDW2 Split-Flap Clock image">
+                    <span aria-hidden="true">&gt;</span>
+                  </button>
+                </div>
+                <figcaption class="gallery-caption">
+                  <strong>Bosch UDW2 Split-Flap Clock gallery</strong>
+                  <span>Installation photos and detail views.</span>
                 </figcaption>
               </figure>
             </article>
@@ -1559,7 +1466,30 @@
         });
       }
 
+      function setupGalleries() {
+        document.querySelectorAll("[data-gallery]").forEach((gallery) => {
+          const items = Array.from(gallery.querySelectorAll("[data-gallery-item]"));
+          const prev = gallery.querySelector("[data-gallery-prev]");
+          const next = gallery.querySelector("[data-gallery-next]");
+          let currentIndex = 0;
+
+          function showImage(index) {
+            if (!items.length) return;
+            currentIndex = (index + items.length) % items.length;
+            items.forEach((item, itemIndex) => {
+              item.hidden = itemIndex !== currentIndex;
+            });
+          }
+
+          prev?.addEventListener("click", () => showImage(currentIndex - 1));
+          next?.addEventListener("click", () => showImage(currentIndex + 1));
+
+          showImage(0);
+        });
+      }
+
       updateTimes();
+      setupGalleries();
       window.setInterval(updateTimes, 1000);
     </script>
   </body>

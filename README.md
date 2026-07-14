@@ -196,6 +196,28 @@ For larger changes, also compile:
 esphome compile esphome/<clock-name>.yaml
 ```
 
+## Public Website Deployment
+
+The public-facing page is `index.html`. GitHub Actions deploys it to GitHub
+Pages with `.github/workflows/pages.yml`.
+
+The deployment artifact intentionally includes only the public site files:
+
+- `index.html`
+- `images/`
+- `docs/FlipDigitSSB_rel2.pdf`
+
+To test a deployment, either push to `main` or run the `Deploy GitHub Pages`
+workflow manually from the GitHub Actions tab. The expected GitHub Pages URL for
+this repository is:
+
+```text
+https://futureshape.github.io/versions-of-now/
+```
+
+If the first run fails because Pages is not enabled, set the repository's Pages
+source to `GitHub Actions` in GitHub Settings, then rerun the workflow.
+
 ## ESPHome Conventions
 
 - Prefer `esp-idf` for ESP32 devices.
