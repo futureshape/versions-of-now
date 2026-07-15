@@ -359,8 +359,7 @@
         color: var(--ink-soft);
       }
 
-      .tech-tags,
-      .source-links {
+      .tech-tags {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
@@ -377,16 +376,30 @@
         font-size: 0.88rem;
       }
 
+      .source-links {
+        color: var(--ink-soft);
+      }
+
+      .source-links h4 {
+        margin: 0 0 6px;
+        color: var(--ink);
+        font-size: 0.95rem;
+      }
+
+      .source-links ul {
+        display: grid;
+        gap: 5px;
+        margin: 0;
+        padding-left: 1.25rem;
+      }
+
+      .source-links li::marker {
+        color: var(--amber);
+      }
+
       .source-links a {
-        display: inline-flex;
-        min-height: 30px;
-        align-items: center;
-        border: 1px solid var(--line);
-        border-radius: 999px;
-        padding: 4px 10px;
-        background: var(--surface);
-        text-decoration: none;
-        font-size: 0.9rem;
+        color: var(--ink);
+        text-underline-offset: 2px;
       }
 
       .trivia {
@@ -446,6 +459,10 @@
         font-size: 1.1rem;
         font-weight: 760;
         transform: translateY(-50%);
+      }
+
+      .gallery-control[hidden] {
+        display: none;
       }
 
       .gallery-control:hover,
@@ -755,10 +772,10 @@
           <div class="section-head">
             <h2 id="clocks-title">The Clocks</h2>
             <p>
-              Each installation has a compact gallery beside it for build photos, final stills, or a
+              <!-- Each installation has a compact gallery beside it for build photos, final stills, or a
               small sequence of details. The first image is a sourced display or reference image;
               the remaining placeholders from the local <code>images/</code> folder are ready for
-              real documentation as it arrives.
+              real documentation as it arrives. -->
             </p>
           </div>
 
@@ -777,13 +794,16 @@
                   swap one by one, while minute changes fall through the display like loose beads.
                 </p>
                 <p class="trivia">
-                  Trivia: the MAX7219 family can address 64 individual LEDs per chip, which is exactly
-                  one 8 x 8 matrix. Four chips make this 256-pixel clock.
+                  The MAX7219 family can address 64 individual LEDs per chip, which is exactly
+                  one 8 x 8 matrix. Four chips make this 256-pixel clock. The same chip can also be used for <a href="https://en.wikipedia.org/wiki/Seven-segment_display" rel="noopener noreferrer">7-segment displays</a>.
                 </p>
                 <div class="source-links" aria-label="Dot matrix sources">
-                  <a href="https://en.wikipedia.org/wiki/Dot-matrix_display" rel="noopener noreferrer">Dot-matrix displays</a>
-                  <a href="https://www.az-delivery.uk/products/4-x-64er-led-matrix-display" rel="noopener noreferrer">MAX7219 8x32 module</a>
-                  <a href="https://www.analog.com/en/products/max7219.html" rel="noopener noreferrer">MAX7219 driver</a>
+                  <h4>Read more</h4>
+                  <ul>
+                    <li><a href="https://en.wikipedia.org/wiki/Dot-matrix_display" rel="noopener noreferrer">Dot-matrix displays</a></li>
+                    <li><a href="https://www.az-delivery.uk/products/4-x-64er-led-matrix-display" rel="noopener noreferrer">MAX7219 8x32 module</a></li>
+                    <li><a href="https://www.analog.com/en/products/max7219.html" rel="noopener noreferrer">MAX7219 driver</a></li>
+                  </ul>
                 </div>
               </div>
               <figure class="clock-gallery" data-gallery>
@@ -791,8 +811,6 @@
                 <div class="gallery-frame">
                   <div class="gallery-items">
                     <img data-gallery-item src="images/dot-matrix-clock/reference.png" alt="MAX7219 8x32 red LED dot matrix module">
-                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="8x32 Dot Matrix Clock gallery image 2">
-                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="8x32 Dot Matrix Clock gallery image 3">
                   </div>
                   <button class="gallery-control prev" type="button" data-gallery-prev aria-label="Previous 8x32 Dot Matrix Clock image">
                     <span aria-hidden="true">&lt;</span>
@@ -818,22 +836,25 @@
                   time is a moving video frame rather than a grid of addressable pixels.
                 </p>
                 <p class="trivia">
-                  Trivia: a CRT image is drawn by scanning an electron beam across phosphor. In this
-                  clock, the "digital" time becomes an analog waveform before it becomes visible.
+                  The CRT modules were used in old doorbell video intercoms, before LCDs became cheap enough to replace them. 
+                  You can still buy them online on AliExpress, even though they're no longer used in new products.
                 </p>
                 <div class="source-links" aria-label="CRT sources">
-                  <a href="https://en.wikipedia.org/wiki/Cathode-ray_tube" rel="noopener noreferrer">Cathode-ray tubes</a>
-                  <a href="https://en.wikipedia.org/wiki/Composite_video" rel="noopener noreferrer">Composite video</a>
-                  <a href="https://commons.wikimedia.org/wiki/File:Television_set_from_the_early_1950s.jpg" rel="noopener noreferrer">Reference CRT image</a>
+                  <h4>Read more</h4>
+                  <ul>
+                    <li><a href="https://en.wikipedia.org/wiki/Cathode-ray_tube" rel="noopener noreferrer">Cathode-ray tubes</a></li>
+                    <li><a href="https://en.wikipedia.org/wiki/Composite_video" rel="noopener noreferrer">Composite video</a></li>
+                    <li><a href="https://625.uk.com/tv_logos/svg.htm" rel="noopener noreferrer">Recreations of vintage BBC clocks</a></li>
+                  </ul>
                 </div>
               </div>
               <figure class="clock-gallery" data-gallery>
                 <!-- Add your own photos as images/crt-bbc-clock/01.jpg, 02.jpg, 03.jpg. -->
                 <div class="gallery-frame">
                   <div class="gallery-items">
-                    <img data-gallery-item src="images/crt-bbc-clock/reference.jpg" alt="Representative vintage CRT television set">
-                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="CRT BBC Clock gallery image 2">
-                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="CRT BBC Clock gallery image 3">
+                    <img data-gallery-item src="images/crt-bbc-clock/aliexpress-crt.jpg" alt="Doorbell CRT module from AliExpress">
+                    <img data-gallery-item src="images/crt-bbc-clock/crt-intercom.webp" alt="Old doorbell intercom using a CRT display">
+                    <img data-gallery-item src="images/crt-bbc-clock/bbc-1-clock.jpg" alt="BBC 1 Clock">
                   </div>
                   <button class="gallery-control prev" type="button" data-gallery-prev aria-label="Previous CRT BBC Clock image">
                     <span aria-hidden="true">&lt;</span>
@@ -847,7 +868,7 @@
 
             <article class="clock" id="oled-pinball-clock">
               <div class="clock-copy">
-                <h3>03. 256x64 OLED Pinball Clock</h3>
+                <h3>03. OLED Pinball Clock</h3>
                 <div class="tech-tags">
                   <span>SSD1322 OLED</span>
                   <span>256 x 64 pixels</span>
@@ -856,25 +877,27 @@
                 <p>
                   The time behaves like a bright object inside a narrow OLED playfield. It bounces off
                   the edges, nudges floating obstacles, and leaves short fading trails behind it, using
-                  the display's grayscale to make motion feel luminous rather than simply on or off.
+                  the display's grayscale to make motion feel luminous rather than simply on or off. This 
+                  animation is inspired by the <a href="https://en.wikipedia.org/wiki/Asteroids_(video_game)" rel="noopener noreferrer">1979 Asteroids video game</a>.
                 </p>
                 <p class="trivia">
-                  Trivia: OLED pixels emit their own light. This is why dark areas can be truly dark,
+                  OLED pixels emit their own light. This is why dark areas can be truly dark,
                   and why tiny trails can glow without a backlight washing over the whole panel.
                 </p>
                 <div class="source-links" aria-label="OLED sources">
-                  <a href="https://en.wikipedia.org/wiki/OLED" rel="noopener noreferrer">OLED</a>
-                  <a href="https://newhavendisplay.com/2-8-inch-blue-graphic-oled-module/" rel="noopener noreferrer">2.8 inch SSD1322 OLED module</a>
-                  <a href="https://www.solomon-systech.com/product/ssd1322/" rel="noopener noreferrer">SSD1322 controller</a>
+                  <h4>Read more</h4>
+                  <ul>
+                    <li><a href="https://en.wikipedia.org/wiki/OLED" rel="noopener noreferrer">OLED</a></li>
+                    <li><a href="https://www.solomon-systech.com/product/ssd1322/" rel="noopener noreferrer">SSD1322 controller</a></li>
+                  </ul>
                 </div>
               </div>
               <figure class="clock-gallery" data-gallery>
                 <!-- Add your own photos as images/oled-pinball-clock/01.jpg, 02.jpg, 03.jpg. -->
                 <div class="gallery-frame">
                   <div class="gallery-items">
-                    <img data-gallery-item src="images/oled-pinball-clock/reference.jpg" alt="Newhaven 2.8 inch 256x64 SSD1322 OLED module">
-                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="256x64 OLED Pinball Clock gallery image 2">
-                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="256x64 OLED Pinball Clock gallery image 3">
+                    <img data-gallery-item src="images/oled-pinball-clock/reference.webp" alt="3.2 inch 256x64 SSD1322 OLED module">
+                    <img data-gallery-item src="images/oled-pinball-clock/asteroids.webp" alt="Asteroids video game screenshot">
                   </div>
                   <button class="gallery-control prev" type="button" data-gallery-prev aria-label="Previous 256x64 OLED Pinball Clock image">
                     <span aria-hidden="true">&lt;</span>
@@ -888,11 +911,11 @@
 
             <article class="clock" id="pico-epaper-clock">
               <div class="clock-copy">
-                <h3>04. Pico ePaper Clock</h3>
+                <h3>04. ePaper Clock</h3>
                 <div class="tech-tags">
-                  <span>Waveshare 4.2 inch panel</span>
+                  <span>Waveshare 4.2 inch ePaper display</span>
                   <span>400 x 300 pixels</span>
-                  <span>Pico W</span>
+                  <span>RPi Pico W</span>
                 </div>
                 <p>
                   This reflective display treats time like handwriting on paper. Seconds update in a
@@ -900,13 +923,17 @@
                   face. It is slower than glowing displays, but it has the calmness of ink.
                 </p>
                 <p class="trivia">
-                  Trivia: e-paper is bistable, so an image can remain visible without continuously
+                   e-paper is bistable, so an image can remain visible without continuously
                   powering every pixel. The tradeoff is that refreshes can be slow and sometimes leave
-                  faint ghosts.
+                  faint ghosts, but modern e-paper modules have improved to the point where they can 
+                  partially refresh areas fast enough to count seconds in a clock.
                 </p>
                 <div class="source-links" aria-label="E-paper sources">
-                  <a href="https://en.wikipedia.org/wiki/Electronic_paper" rel="noopener noreferrer">Electronic paper</a>
-                  <a href="https://www.waveshare.com/pico-epaper-4.2.htm" rel="noopener noreferrer">Pico-ePaper-4.2</a>
+                  <h4>Read more</h4>
+                  <ul>
+                    <li><a href="https://en.wikipedia.org/wiki/Electronic_paper" rel="noopener noreferrer">Electronic paper</a></li>
+                    <li><a href="https://www.waveshare.com/pico-epaper-4.2.htm" rel="noopener noreferrer">Pico-ePaper-4.2</a></li>
+                  </ul>
                 </div>
               </div>
               <figure class="clock-gallery" data-gallery>
@@ -914,8 +941,6 @@
                 <div class="gallery-frame">
                   <div class="gallery-items">
                     <img data-gallery-item src="images/pico-epaper-clock/reference.jpg" alt="Waveshare Pico-ePaper-4.2 display module">
-                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="Pico ePaper Clock gallery image 2">
-                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="Pico ePaper Clock gallery image 3">
                   </div>
                   <button class="gallery-control prev" type="button" data-gallery-prev aria-label="Previous Pico ePaper Clock image">
                     <span aria-hidden="true">&lt;</span>
@@ -929,25 +954,29 @@
 
             <article class="clock" id="nokia-beats-clock">
               <div class="clock-copy">
-                <h3>05. PCD8544 Swatch Internet Time Clock</h3>
+                <h3>05. Nokia-style Swatch Internet Time Clock</h3>
                 <div class="tech-tags">
                   <span>Nokia 5110-style LCD</span>
                   <span>84 x 48 pixels</span>
                   <span>@beats</span>
                 </div>
                 <p>
-                  A tiny Nokia-style LCD shows Swatch Internet Time as an @xxx beat value. Instead of
+                  A tiny LCD, used in the legendary Nokia 5110 mobile phone, shows Swatch Internet Time as an @xxx beat value. Instead of
                   hours, minutes, and seconds, the day is divided into 1000 equal parts, giving the
                   clock a timekeeping dialect that feels both futuristic and strangely retro.
                 </p>
                 <p class="trivia">
-                  Trivia: one Swatch .beat lasts 86.4 seconds. The system uses Biel Mean Time, based on
-                  UTC+1, and does not observe daylight saving time.
+                  One Swatch .beat lasts 86.4 seconds. The system uses Biel Mean Time, based on
+                  UTC+1, and does not observe daylight saving time. Both the Swatch Internet Time 
+                  and the Nokia 5110 were introduced in 1998.
                 </p>
                 <div class="source-links" aria-label="LCD and beat time sources">
-                  <a href="https://www.adafruit.com/product/338" rel="noopener noreferrer">Nokia 5110 LCD module</a>
-                  <a href="https://learn.adafruit.com/nokia-5110-3310-monochrome-lcd" rel="noopener noreferrer">Adafruit guide</a>
-                  <a href="https://en.wikipedia.org/wiki/Swatch_Internet_Time" rel="noopener noreferrer">Swatch Internet Time</a>
+                  <h4>Read more</h4>
+                  <ul>
+                    <li><a href="https://www.adafruit.com/product/338" rel="noopener noreferrer">Nokia 5110 LCD module</a></li>
+                    <li><a href="https://en.wikipedia.org/wiki/Swatch_Internet_Time" rel="noopener noreferrer">Swatch Internet Time</a></li>
+                    <li><a href="https://en.wikipedia.org/wiki/Nokia_5110" rel="noopener noreferrer">Nokia 5110 mobile phone</a></li>
+                  </ul>
                 </div>
               </div>
               <figure class="clock-gallery" data-gallery>
@@ -955,8 +984,7 @@
                 <div class="gallery-frame">
                   <div class="gallery-items">
                     <img data-gallery-item src="images/nokia-beats-clock/reference.jpg" alt="Nokia 5110 PCD8544 monochrome LCD module">
-                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="PCD8544 Swatch Internet Time Clock gallery image 2">
-                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="PCD8544 Swatch Internet Time Clock gallery image 3">
+                    <img data-gallery-item src="images/nokia-beats-clock/nokia-5110.jpg" alt="Nokia 5110 mobile phone">
                   </div>
                   <button class="gallery-control prev" type="button" data-gallery-prev aria-label="Previous PCD8544 Swatch Internet Time Clock image">
                     <span aria-hidden="true">&lt;</span>
@@ -970,11 +998,11 @@
 
             <article class="clock" id="tm1637-clock">
               <div class="clock-copy">
-                <h3>06. TM1637 6-Digit Clock</h3>
+                <h3>06. 7-segment LED Clock</h3>
                 <div class="tech-tags">
                   <span>Six LED digits</span>
                   <span>Seven-segment numerals</span>
-                  <span>ESP32-S3</span>
+                  <span>TM1637</span>
                 </div>
                 <p>
                   The six-digit module shows local time as HHMMSS, with dots separating hours, minutes,
@@ -982,13 +1010,15 @@
                   numerals, fast updates, and almost no room for ambiguity.
                 </p>
                 <p class="trivia">
-                  Trivia: seven-segment displays are a display language of restraint. With just seven
+                  Seven-segment displays are a display language of restraint. With just seven
                   bars per digit, they can make every numeral from 0 to 9 instantly recognizable.
                 </p>
                 <div class="source-links" aria-label="Seven-segment sources">
-                  <a href="https://en.wikipedia.org/wiki/Seven-segment_display" rel="noopener noreferrer">Seven-segment displays</a>
-                  <a href="https://www.az-delivery.uk/products/tm1637-6-digit-blaue-led-anzeige-7-segment-display-modul-mit-0-56-zoll-5v-anzeigemodul-kompatibel-mit-raspberry-pi" rel="noopener noreferrer">TM1637 6-digit module</a>
-                  <a href="https://en.wikipedia.org/wiki/LED_display" rel="noopener noreferrer">LED displays</a>
+                  <h4>Read more</h4>
+                  <ul>
+                    <li><a href="https://en.wikipedia.org/wiki/Seven-segment_display" rel="noopener noreferrer">Seven-segment displays</a></li>
+                    <li><a href="https://github.com/revolunet/tm1637/blob/master/datasheet-en.pdf" rel="noopener noreferrer">TM1637 7-segment display driver</a></li>
+                  </ul>
                 </div>
               </div>
               <figure class="clock-gallery" data-gallery>
@@ -996,8 +1026,6 @@
                 <div class="gallery-frame">
                   <div class="gallery-items">
                     <img data-gallery-item src="images/tm1637-clock/reference.jpg" alt="Six-digit TM1637 seven-segment LED module">
-                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="TM1637 6-Digit Clock gallery image 2">
-                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="TM1637 6-Digit Clock gallery image 3">
                   </div>
                   <button class="gallery-control prev" type="button" data-gallery-prev aria-label="Previous TM1637 6-Digit Clock image">
                     <span aria-hidden="true">&lt;</span>
@@ -1023,15 +1051,18 @@
                   enough to feel closer to signage than to a screen.
                 </p>
                 <p class="trivia">
-                  Trivia: RS-485 is common in industrial settings because it is differential, which
+                   RS-485 is common in industrial settings because it is differential, which
                   helps signals travel farther and tolerate electrical noise better than simple serial
                   wiring.
                 </p>
                 <div class="source-links" aria-label="Flip digit sources">
-                  <a href="https://flipdots.com/en/products-services/small-7-segment-displays/" rel="noopener noreferrer">AlfaZeta small 7-segment displays</a>
-                  <a href="https://en.wikipedia.org/wiki/Seven-segment_display" rel="noopener noreferrer">Seven-segment displays</a>
-                  <a href="https://en.wikipedia.org/wiki/RS-485" rel="noopener noreferrer">RS-485</a>
-                  <a href="docs/FlipDigitSSB_rel2.pdf">FlipDigitSSB protocol PDF</a>
+                  <h4>Read more</h4>
+                  <ul>
+                    <li><a href="https://flipdots.com/en/products-services/small-7-segment-displays/" rel="noopener noreferrer">AlfaZeta small 7-segment displays</a></li>
+                    <li><a href="https://en.wikipedia.org/wiki/Seven-segment_display" rel="noopener noreferrer">Seven-segment displays</a></li>
+                    <li><a href="https://en.wikipedia.org/wiki/RS-485" rel="noopener noreferrer">RS-485</a></li>
+                    <li><a href="docs/FlipDigitSSB_rel2.pdf">FlipDigitSSB protocol PDF</a></li>
+                  </ul>
                 </div>
               </div>
               <figure class="clock-gallery" data-gallery>
@@ -1039,8 +1070,6 @@
                 <div class="gallery-frame">
                   <div class="gallery-items">
                     <img data-gallery-item src="images/flip-digits-clock/reference.png" alt="AlfaZeta small electromagnetic seven-segment display module">
-                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="Flip Digits Clock gallery image 2">
-                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="Flip Digits Clock gallery image 3">
                   </div>
                   <button class="gallery-control prev" type="button" data-gallery-prev aria-label="Previous Flip Digits Clock image">
                     <span aria-hidden="true">&lt;</span>
@@ -1066,13 +1095,16 @@
                   turned into needle positions.
                 </p>
                 <p class="trivia">
-                  Trivia: many analog meters descend from galvanometer movements, where a current
+                   many analog meters descend from galvanometer movements, where a current
                   through a coil creates a magnetic force that deflects a pointer.
                 </p>
                 <div class="source-links" aria-label="Analog meter sources">
-                  <a href="https://en.wikipedia.org/wiki/Galvanometer" rel="noopener noreferrer">Galvanometers</a>
-                  <a href="https://www.adafruit.com/product/3990" rel="noopener noreferrer">Large 5V analog panel meter</a>
-                  <a href="https://www.microchip.com/en-us/product/mcp4728" rel="noopener noreferrer">MCP4728 DAC</a>
+                  <h4>Read more</h4>
+                  <ul>
+                    <li><a href="https://en.wikipedia.org/wiki/Galvanometer" rel="noopener noreferrer">Galvanometers</a></li>
+                    <li><a href="https://www.adafruit.com/product/3990" rel="noopener noreferrer">Large 5V analog panel meter</a></li>
+                    <li><a href="https://www.microchip.com/en-us/product/mcp4728" rel="noopener noreferrer">MCP4728 DAC</a></li>
+                  </ul>
                 </div>
               </div>
               <figure class="clock-gallery" data-gallery>
@@ -1080,8 +1112,6 @@
                 <div class="gallery-frame">
                   <div class="gallery-items">
                     <img data-gallery-item src="images/analog-panel-meter-clock/sifam-panel-meter.jpg" alt="Large 5V analog panel meter">
-                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="Analog Panel Meter Clock gallery image 2">
-                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="Analog Panel Meter Clock gallery image 3">
                   </div>
                   <button class="gallery-control prev" type="button" data-gallery-prev aria-label="Previous Analog Panel Meter Clock image">
                     <span aria-hidden="true">&lt;</span>
@@ -1107,12 +1137,15 @@
                   minute.
                 </p>
                 <p class="trivia">
-                  Trivia: VFDs glow because electrons strike phosphor-coated anodes inside a vacuum
+                   VFDs glow because electrons strike phosphor-coated anodes inside a vacuum
                   tube, giving them a crisp light that sits somewhere between neon, CRTs, and LEDs.
                 </p>
                 <div class="source-links" aria-label="VFD sources">
-                  <a href="https://en.wikipedia.org/wiki/Vacuum_fluorescent_display" rel="noopener noreferrer">VFD technology</a>
-                  <a href="https://www.manualslib.com/manual/1146241/Wincor-Nixdorf-Ba63.html" rel="noopener noreferrer">BA63 manual</a>
+                  <h4>Read more</h4>
+                  <ul>
+                    <li><a href="https://en.wikipedia.org/wiki/Vacuum_fluorescent_display" rel="noopener noreferrer">VFD technology</a></li>
+                    <li><a href="https://www.manualslib.com/manual/1146241/Wincor-Nixdorf-Ba63.html" rel="noopener noreferrer">BA63 manual</a></li>
+                  </ul>
                 </div>
               </div>
               <figure class="clock-gallery" data-gallery>
@@ -1120,8 +1153,6 @@
                 <div class="gallery-frame">
                   <div class="gallery-items">
                     <img data-gallery-item src="images/vfd-clock/reference.jpg" alt="Wincor Nixdorf BA63 vacuum fluorescent customer display">
-                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="VFD Clock gallery image 2">
-                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="VFD Clock gallery image 3">
                   </div>
                   <button class="gallery-control prev" type="button" data-gallery-prev aria-label="Previous VFD Clock image">
                     <span aria-hidden="true">&lt;</span>
@@ -1147,12 +1178,15 @@
                   a modern LCD imitate a much softer kind of motion.
                 </p>
                 <p class="trivia">
-                  Trivia: this is the highest-resolution visual clock in the current set, but it uses
+                   this is the highest-resolution visual clock in the current set, but it uses
                   that density to make the numbers feel elastic rather than sharp.
                 </p>
                 <div class="source-links" aria-label="Dali clock sources">
-                  <a href="https://shop.pimoroni.com/products/hyperpixel-4-square" rel="noopener noreferrer">HyperPixel 4.0 Square</a>
-                  <a href="https://www.jwz.org/xdaliclock/" rel="noopener noreferrer">Dali Clock</a>
+                  <h4>Read more</h4>
+                  <ul>
+                    <li><a href="https://shop.pimoroni.com/products/hyperpixel-4-square" rel="noopener noreferrer">HyperPixel 4.0 Square</a></li>
+                    <li><a href="https://www.jwz.org/xdaliclock/" rel="noopener noreferrer">Dali Clock</a></li>
+                  </ul>
                 </div>
               </div>
               <figure class="clock-gallery" data-gallery>
@@ -1160,8 +1194,6 @@
                 <div class="gallery-frame">
                   <div class="gallery-items">
                     <img data-gallery-item src="images/dali-clock/reference.jpg" alt="Pimoroni HyperPixel 4.0 Square display">
-                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="Dali Clock on HyperPixel 4.0 Square gallery image 2">
-                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="Dali Clock on HyperPixel 4.0 Square gallery image 3">
                   </div>
                   <button class="gallery-control prev" type="button" data-gallery-prev aria-label="Previous Dali Clock on HyperPixel 4.0 Square image">
                     <span aria-hidden="true">&lt;</span>
@@ -1187,13 +1219,16 @@
                   third stroke scheduled for the announced moment.
                 </p>
                 <p class="trivia">
-                  Trivia: telephone speaking clocks date back to the 1930s. They made accurate time a
+                   telephone speaking clocks date back to the 1930s. They made accurate time a
                   public service long before every pocket carried a networked clock.
                 </p>
                 <div class="source-links" aria-label="Speaking clock sources">
-                  <a href="https://en.wikipedia.org/wiki/Speaking_clock" rel="noopener noreferrer">Speaking clocks</a>
-                  <a href="https://github.com/OHF-Voice/piper1-gpl" rel="noopener noreferrer">Piper TTS</a>
-                  <a href="https://thepihut.com/products/usb-audio-adapter-works-with-raspberry-pi" rel="noopener noreferrer">USB audio adapter</a>
+                  <h4>Read more</h4>
+                  <ul>
+                    <li><a href="https://en.wikipedia.org/wiki/Speaking_clock" rel="noopener noreferrer">Speaking clocks</a></li>
+                    <li><a href="https://github.com/OHF-Voice/piper1-gpl" rel="noopener noreferrer">Piper TTS</a></li>
+                    <li><a href="https://thepihut.com/products/usb-audio-adapter-works-with-raspberry-pi" rel="noopener noreferrer">USB audio adapter</a></li>
+                  </ul>
                 </div>
               </div>
               <figure class="clock-gallery" data-gallery>
@@ -1201,8 +1236,6 @@
                 <div class="gallery-frame">
                   <div class="gallery-items">
                     <img data-gallery-item src="images/speaking-clock/reference.jpg" alt="USB audio adapter for Raspberry Pi audio output">
-                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="Speaking Clock gallery image 2">
-                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="Speaking Clock gallery image 3">
                   </div>
                   <button class="gallery-control prev" type="button" data-gallery-prev aria-label="Previous Speaking Clock image">
                     <span aria-hidden="true">&lt;</span>
@@ -1228,13 +1261,16 @@
                   the display has to travel through real positions before the new time settles into view.
                 </p>
                 <p class="trivia">
-                  Trivia: split-flap displays became iconic in railway stations and airports because
+                   split-flap displays became iconic in railway stations and airports because
                   they are readable at a distance and make their updates audible. The sound of the
                   refresh is part of the interface.
                 </p>
                 <div class="source-links" aria-label="Split-flap sources">
-                  <a href="https://en.wikipedia.org/wiki/Split-flap_display" rel="noopener noreferrer">Split-flap displays</a>
-                  <a href="https://en.wikipedia.org/wiki/Robert_Bosch_GmbH" rel="noopener noreferrer">Bosch</a>
+                  <h4>Read more</h4>
+                  <ul>
+                    <li><a href="https://en.wikipedia.org/wiki/Split-flap_display" rel="noopener noreferrer">Split-flap displays</a></li>
+                    <li><a href="https://en.wikipedia.org/wiki/Robert_Bosch_GmbH" rel="noopener noreferrer">Bosch</a></li>
+                  </ul>
                 </div>
               </div>
               <figure class="clock-gallery" data-gallery>
@@ -1242,8 +1278,6 @@
                 <div class="gallery-frame">
                   <div class="gallery-items">
                     <img data-gallery-item src="images/placeholder-600x400.png" alt="Bosch UDW2 Split-Flap Clock gallery image 1">
-                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="Bosch UDW2 Split-Flap Clock gallery image 2">
-                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="Bosch UDW2 Split-Flap Clock gallery image 3">
                   </div>
                   <button class="gallery-control prev" type="button" data-gallery-prev aria-label="Previous Bosch UDW2 Split-Flap Clock image">
                     <span aria-hidden="true">&lt;</span>
@@ -1269,13 +1303,16 @@
                   orange neon light, so the number itself appears to be floating in the glass.
                 </p>
                 <p class="trivia">
-                  Trivia: Nixie tubes predate LEDs and were widely used in laboratory instruments,
+                   Nixie tubes predate LEDs and were widely used in laboratory instruments,
                   calculators, and test equipment. Their name comes from the "numeric indicator
                   eXperimental" designation used by their early manufacturer, Burroughs.
                 </p>
                 <div class="source-links" aria-label="Nixie tube sources">
-                  <a href="https://en.wikipedia.org/wiki/Nixie_tube" rel="noopener noreferrer">Nixie tubes</a>
-                  <a href="https://en.wikipedia.org/wiki/Neon_lamp" rel="noopener noreferrer">Neon lamps</a>
+                  <h4>Read more</h4>
+                  <ul>
+                    <li><a href="https://en.wikipedia.org/wiki/Nixie_tube" rel="noopener noreferrer">Nixie tubes</a></li>
+                    <li><a href="https://en.wikipedia.org/wiki/Neon_lamp" rel="noopener noreferrer">Neon lamps</a></li>
+                  </ul>
                 </div>
               </div>
               <figure class="clock-gallery" data-gallery>
@@ -1283,8 +1320,6 @@
                 <div class="gallery-frame">
                   <div class="gallery-items">
                     <img data-gallery-item src="images/nixie-tube-clock/nixie-kit.jpg" alt="Nixie Tube Clock gallery image 1">
-                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="Nixie Tube Clock gallery image 2">
-                    <img data-gallery-item hidden src="images/placeholder-600x400.png" alt="Nixie Tube Clock gallery image 3">
                   </div>
                   <button class="gallery-control prev" type="button" data-gallery-prev aria-label="Previous Nixie Tube Clock image">
                     <span aria-hidden="true">&lt;</span>
@@ -1320,7 +1355,7 @@
                 controls without needing a cloud service.
               </p>
               <p>
-                Trivia: ESPHome is often associated with home automation, but here it behaves more like
+                 ESPHome is often associated with home automation, but here it behaves more like
                 a tiny exhibition operating system for displays.
               </p>
             </article>
@@ -1334,7 +1369,7 @@
                 even when packets take slightly different routes across the internet.
               </p>
               <p>
-                Trivia: NTP timestamps count from an epoch in 1900, not 1970. The modern NTPv4
+                 NTP timestamps count from an epoch in 1900, not 1970. The modern NTPv4
                 specification is documented in <a href="https://www.rfc-editor.org/rfc/rfc5905" rel="noopener noreferrer">RFC 5905</a>.
               </p>
             </article>
@@ -1348,7 +1383,7 @@
                 Raspberry Pi systems where Linux is useful for display or audio software.
               </p>
               <p>
-                Trivia: the same installation spans bare-metal-style display loops, ESPHome components,
+                 the same installation spans bare-metal-style display loops, ESPHome components,
                 and ordinary Linux services. They all meet at the same question: what should this second
                 look or sound like?
               </p>
@@ -1363,7 +1398,7 @@
                 needs them.
               </p>
               <p>
-                Trivia: static sites are a good match for installations because the page can outlive
+                 static sites are a good match for installations because the page can outlive
                 laptops, local servers, and whatever festival Wi-Fi happens to be doing that day.
               </p>
             </article>
@@ -1438,6 +1473,10 @@
           const prev = gallery.querySelector("[data-gallery-prev]");
           const next = gallery.querySelector("[data-gallery-next]");
           let currentIndex = 0;
+          const hasMultipleItems = items.length > 1;
+
+          prev?.toggleAttribute("hidden", !hasMultipleItems);
+          next?.toggleAttribute("hidden", !hasMultipleItems);
 
           function showImage(index) {
             if (!items.length) return;
@@ -1447,10 +1486,12 @@
             });
           }
 
+          showImage(0);
+
+          if (!hasMultipleItems) return;
+
           prev?.addEventListener("click", () => showImage(currentIndex - 1));
           next?.addEventListener("click", () => showImage(currentIndex + 1));
-
-          showImage(0);
         });
       }
 
