@@ -1052,27 +1052,24 @@
               <div class="clock-copy">
                 <h3>07. Flip Digits Clock</h3>
                 <div class="tech-tags">
-                  <span>Four physical digits</span>
-                  <span>RS-485 bus</span>
-                  <span>HHMM</span>
+                  <span>7-segment display</span>
+                  <span>Electromechanical flip segments</span>
                 </div>
                 <p>
-                  Four FlipDigitSSB modules form a mechanical-looking HHMM clock over an RS-485 link.
-                  The display is still seven-segment at heart, but the change in state is physical
-                  enough to feel closer to signage than to a screen.
+                  Four "Flip Digit" modules form a mechanical HHMM clock.
+                  Unlike electronic seven-segment displays, each segment is an electromagnetically 
+                  controlled flip mechanism that physically rotates to show or hide its face—creating 
+                  a satisfying tactile and audible transition that bridges the gap between mechanical 
+                  signage and digital displays.
                 </p>
                 <p class="trivia">
-                   RS-485 is common in industrial settings because it is differential, which
-                  helps signals travel farther and tolerate electrical noise better than simple serial
-                  wiring.
+                  Flip Digit displays were frequently used in public transport signage (such as National Rail station clocks in the UK), 
+                  sports timing displays, and as displays for petrol pumps, where their high visibility was advantageous.
                 </p>
                 <div class="source-links" aria-label="Flip digit sources">
                   <h4>Read more</h4>
                   <ul>
-                    <li><a href="https://flipdots.com/en/products-services/small-7-segment-displays/" rel="noopener noreferrer">AlfaZeta small 7-segment displays</a></li>
-                    <li><a href="https://en.wikipedia.org/wiki/Seven-segment_display" rel="noopener noreferrer">Seven-segment displays</a></li>
-                    <li><a href="https://en.wikipedia.org/wiki/RS-485" rel="noopener noreferrer">RS-485</a></li>
-                    <li><a href="docs/FlipDigitSSB_rel2.pdf">FlipDigitSSB protocol PDF</a></li>
+                    <li><a href="https://flipdots.com/en/products-services/small-7-segment-displays/" rel="noopener noreferrer">Flip Digit displays by AlfaZeta</a></li>
                   </ul>
                 </div>
               </div>
@@ -1081,6 +1078,8 @@
                 <div class="gallery-frame">
                   <div class="gallery-items">
                     <img data-gallery-item src="images/flip-digits-clock/reference.png" alt="AlfaZeta small electromagnetic seven-segment display module">
+                    <img data-gallery-item src="images/flip-digits-clock/petrol-pump.webp" alt="Flip Digit display on a petrol pump">
+                    <img data-gallery-item src="images/flip-digits-clock/nes-clock.jpg" alt="Flip Digit display on a UK National Rail clock">
                   </div>
                   <button class="gallery-control prev" type="button" data-gallery-prev aria-label="Previous Flip Digits Clock image">
                     <span aria-hidden="true">&lt;</span>
@@ -1106,14 +1105,13 @@
                   turned into needle positions.
                 </p>
                 <p class="trivia">
-                   many analog meters descend from galvanometer movements, where a current
+                  Many analog meters descend from galvanometer movements, where a current
                   through a coil creates a magnetic force that deflects a pointer.
                 </p>
                 <div class="source-links" aria-label="Analog meter sources">
                   <h4>Read more</h4>
                   <ul>
                     <li><a href="https://en.wikipedia.org/wiki/Galvanometer" rel="noopener noreferrer">Galvanometers</a></li>
-                    <li><a href="https://www.adafruit.com/product/3990" rel="noopener noreferrer">Large 5V analog panel meter</a></li>
                     <li><a href="https://www.microchip.com/en-us/product/mcp4728" rel="noopener noreferrer">MCP4728 DAC</a></li>
                   </ul>
                 </div>
@@ -1177,7 +1175,7 @@
 
             <article class="clock" id="dali-clock">
               <div class="clock-copy">
-                <h3>10. Dali Clock on HyperPixel 4.0 Square</h3>
+                <h3>10. Dali Clock</h3>
                 <div class="tech-tags">
                   <span>720 x 720 LCD</span>
                   <span>Raspberry Pi</span>
@@ -1189,14 +1187,16 @@
                   a modern LCD imitate a much softer kind of motion.
                 </p>
                 <p class="trivia">
-                   this is the highest-resolution visual clock in the current set, but it uses
-                  that density to make the numbers feel elastic rather than sharp.
+                  Trivia: the effect began as Steve Capps's Dali Clock for the Xerox Alto in 1979,
+                  then reached the Macintosh before Jamie Zawinski reimplemented it as xdaliclock
+                  for X11 in 1991. This is the highest-resolution visual clock in the current set,
+                  but it uses that density to make the numbers feel elastic rather than sharp.
                 </p>
                 <div class="source-links" aria-label="Dali clock sources">
                   <h4>Read more</h4>
                   <ul>
                     <li><a href="https://shop.pimoroni.com/products/hyperpixel-4-square" rel="noopener noreferrer">HyperPixel 4.0 Square</a></li>
-                    <li><a href="https://www.jwz.org/xdaliclock/" rel="noopener noreferrer">Dali Clock</a></li>
+                    <li><a href="https://www.jwz.org/xdaliclock/" rel="noopener noreferrer">Dali Clock software</a></li>
                   </ul>
                 </div>
               </div>
@@ -1205,6 +1205,7 @@
                 <div class="gallery-frame">
                   <div class="gallery-items">
                     <img data-gallery-item src="images/dali-clock/reference.jpg" alt="Pimoroni HyperPixel 4.0 Square display">
+                    <img data-gallery-item src="images/dali-clock/dali-persistence-of-memory.webp" alt="The Persistence of Memory by Salvador Dalí">
                   </div>
                   <button class="gallery-control prev" type="button" data-gallery-prev aria-label="Previous Dali Clock on HyperPixel 4.0 Square image">
                     <span aria-hidden="true">&lt;</span>
@@ -1230,15 +1231,15 @@
                   third stroke scheduled for the announced moment.
                 </p>
                 <p class="trivia">
-                   telephone speaking clocks date back to the 1930s. They made accurate time a
-                  public service long before every pocket carried a networked clock.
+                  Telephone speaking clocks date back to the 1930s. They made accurate time a
+                  public service long before every pocket carried a networked clock. You can still 
+                  call the speaking clock in the UK at 123 from landlines and some mobile networks.
                 </p>
                 <div class="source-links" aria-label="Speaking clock sources">
                   <h4>Read more</h4>
                   <ul>
                     <li><a href="https://en.wikipedia.org/wiki/Speaking_clock" rel="noopener noreferrer">Speaking clocks</a></li>
                     <li><a href="https://github.com/OHF-Voice/piper1-gpl" rel="noopener noreferrer">Piper TTS</a></li>
-                    <li><a href="https://thepihut.com/products/usb-audio-adapter-works-with-raspberry-pi" rel="noopener noreferrer">USB audio adapter</a></li>
                   </ul>
                 </div>
               </div>
@@ -1246,7 +1247,7 @@
                 <!-- Add your own photos as images/speaking-clock/01.jpg, 02.jpg, 03.jpg. -->
                 <div class="gallery-frame">
                   <div class="gallery-items">
-                    <img data-gallery-item src="images/speaking-clock/reference.jpg" alt="USB audio adapter for Raspberry Pi audio output">
+                    <img data-gallery-item src="images/speaking-clock/reference.jpg" alt="Vintage telephone">
                   </div>
                   <button class="gallery-control prev" type="button" data-gallery-prev aria-label="Previous Speaking Clock image">
                     <span aria-hidden="true">&lt;</span>
@@ -1260,7 +1261,7 @@
 
             <article class="clock" id="bosch-udw2-split-flap-clock">
               <div class="clock-copy">
-                <h3>12. Bosch UDW2 Split-Flap Clock</h3>
+                <h3>12. Split-Flap Clock</h3>
                 <div class="tech-tags">
                   <span>Bosch UDW2</span>
                   <span>Electromechanical flaps</span>
@@ -1272,7 +1273,7 @@
                   the display has to travel through real positions before the new time settles into view.
                 </p>
                 <p class="trivia">
-                   split-flap displays became iconic in railway stations and airports because
+                  Split-flap displays became iconic in railway stations and airports because
                   they are readable at a distance and make their updates audible. The sound of the
                   refresh is part of the interface.
                 </p>
@@ -1280,15 +1281,14 @@
                   <h4>Read more</h4>
                   <ul>
                     <li><a href="https://en.wikipedia.org/wiki/Split-flap_display" rel="noopener noreferrer">Split-flap displays</a></li>
-                    <li><a href="https://en.wikipedia.org/wiki/Robert_Bosch_GmbH" rel="noopener noreferrer">Bosch</a></li>
-                  </ul>
+s                  </ul>
                 </div>
               </div>
               <figure class="clock-gallery" data-gallery>
                 <!-- Add your own photos as images/bosch-udw2-split-flap-clock/01.jpg, 02.jpg, 03.jpg. -->
                 <div class="gallery-frame">
                   <div class="gallery-items">
-                    <img data-gallery-item src="images/placeholder-600x400.png" alt="Bosch UDW2 Split-Flap Clock gallery image 1">
+                    <img data-gallery-item src="images/bosch-udw2-split-flap-clock/bosch-udw-2.jpg" alt="Bosch UDW2 Split-Flap Clock">
                   </div>
                   <button class="gallery-control prev" type="button" data-gallery-prev aria-label="Previous Bosch UDW2 Split-Flap Clock image">
                     <span aria-hidden="true">&lt;</span>
@@ -1393,24 +1393,14 @@
                 The e-paper clock uses a Raspberry Pi Pico W, and the Dali and speaking clocks use
                 Raspberry Pi systems where Linux is useful for display or audio software.
               </p>
-              <p>
-                 the same installation spans bare-metal-style display loops, ESPHome components,
-                and ordinary Linux services. They all meet at the same question: what should this second
-                look or sound like?
-              </p>
             </article>
 
             <article class="tech-panel">
-              <h3>Local, Static, Repairable</h3>
+              <h3>IKEA SKÅDIS Pegboard</h3>
               <p>
-                The public description is a single HTML file with inline styling and a small live-time
-                script. It can be served from GitHub Pages without a build step, and the clock firmware
-                avoids Home Assistant, MQTT, and cloud dependencies unless a future clock explicitly
-                needs them.
-              </p>
-              <p>
-                 static sites are a good match for installations because the page can outlive
-                laptops, local servers, and whatever festival Wi-Fi happens to be doing that day.
+                The clocks are mounted on a <a href="https://www.ikea.com/gb/en/search/?q=skådis" rel="noopener noreferrer">SKÅDIS pegboard</a>
+                from IKEA, which is a simple and inexpensive way to hold small objects. The pegboard
+                is a grid of holes that can accept hooks, shelves, and other accessories and has a massive ecosystem of 3D-printed and laser-cut attachements.
               </p>
             </article>
           </div>
