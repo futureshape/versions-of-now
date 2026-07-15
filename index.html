@@ -77,11 +77,16 @@
         letter-spacing: 0;
       }
 
-      h1 {
-        max-width: 760px;
-        color: #f9fff9;
-        font-size: 5.8rem;
-        font-weight: 780;
+      .hero-title {
+        max-width: 920px;
+        mix-blend-mode: screen;
+      }
+
+      .hero-title img {
+        display: block;
+        width: 100%;
+        height: auto;
+        filter: invert(1);
       }
 
       h2 {
@@ -143,6 +148,7 @@
           linear-gradient(90deg, rgba(16, 21, 18, 0.94), rgba(16, 21, 18, 0.68) 48%, rgba(16, 21, 18, 0.3)),
           linear-gradient(0deg, rgba(16, 21, 18, 0.82), transparent 38%);
         pointer-events: none;
+        z-index: 1;
       }
 
       .hero-scene {
@@ -241,10 +247,14 @@
 
       .hero-content {
         position: relative;
-        z-index: 2;
         width: min(1180px, calc(100% - 36px));
         margin: 0 auto;
         padding: 120px 0 54px;
+      }
+
+      .hero-content > * {
+        position: relative;
+        z-index: 2;
       }
 
       .eyebrow {
@@ -578,10 +588,6 @@
       }
 
       @media (max-width: 980px) {
-        h1 {
-          font-size: 4.4rem;
-        }
-
         h2 {
           font-size: 2.15rem;
         }
@@ -607,10 +613,6 @@
       }
 
       @media (max-width: 680px) {
-        h1 {
-          font-size: 3.1rem;
-        }
-
         h2 {
           font-size: 1.9rem;
         }
@@ -734,8 +736,8 @@
       </div>
 
       <div class="hero-content">
-        <p class="eyebrow">EMF Camp 2026 installation</p>
-        <h1>Versions of Now</h1>
+        <p class="eyebrow">Electromagnetic Field 2026</p>
+        <h1 class="hero-title"><img src="images/versions-of-now.png" alt="Versions of Now"></h1>
         <p class="hero-copy">
           See the same moment in time rendered across a collection of display technologies. Some glow,
           some reflect light, some move, and one speaks. Each clock receives approximately the same
@@ -744,7 +746,7 @@
         <div class="hero-meta" aria-label="Live time summary">
           <span>Local time <strong class="clock-time" data-clock-format="local">--:--:--</strong></span>
           <span>Swatch beat <strong class="clock-time" data-clock-format="beats">@---</strong></span>
-          <span>11 clocks and counting</span>
+          <span>13 clocks and counting</span>
         </div>
       </div>
     </header>
