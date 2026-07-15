@@ -514,6 +514,17 @@
         color: var(--ink-soft);
       }
 
+      .thanks-copy ul {
+        display: grid;
+        gap: 8px;
+        margin: 0;
+        padding-left: 1.25rem;
+      }
+
+      .thanks-copy li::marker {
+        color: var(--amber);
+      }
+
       .footer {
         padding: 28px 0;
         border-top: 1px solid var(--line);
@@ -1411,15 +1422,16 @@
           <h2 id="thanks-title">Thanks</h2>
           <div class="thanks-copy">
             <p>
-              Placeholder acknowledgements for now: thanks to the EMF Camp community, the open-source
-              maintainers whose tools make tiny hardware feel approachable, the people documenting old
-              displays and new modules, and everyone who has encouraged this project from "what if" to
-              "yes, build the wall of clocks".
+              Versions of Now has grown through generous advice, borrowed knowledge, and patient
+              encouragement. Particular thanks to:
             </p>
-            <p>
-              Final names, suppliers, collaborators, and build credits will be added here as the
-              installation comes together.
-            </p>
+            <ul>              
+              <li>My partner, Ania Mendrek, for tolerating the proliferation of clocks and cables in our home for a few weeks.</li>
+              <li>Members of <a href="https://infrastructureclub.org/" rel="noopener noreferrer">Infrastructure Club</a> for ideas and encouragement.</li>
+              <li>Members of <a href="https://southlondonmakerspace.org/" rel="noopener noreferrer">South London Makerspace</a> for help with SMD soldering and fixing my mistakes.</li>
+              <li><a href="https://www.emfcamp.org/" rel="noopener noreferrer">Electromagnetic Field festival</a>, for giving this installation its first home and giving me a reason to finish it.</li>
+              <li>All those who maintain the open-source projects and who have documented vintage displays that make this installation possible.</li>
+            </ul>
           </div>
         </div>
       </section>
