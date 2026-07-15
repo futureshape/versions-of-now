@@ -100,6 +100,12 @@ load_env() {
   : "${PI_WIFI_SSID:=}"
   : "${PI_WIFI_PASSWORD:=}"
   : "${PI_WIFI_HIDDEN:=0}"
+  : "${PI_EMF_WIFI_ENABLE:=1}"
+  : "${PI_EMF_WIFI_SSID:=emf}"
+  : "${PI_EMF_WIFI_USERNAME:=emf}"
+  : "${PI_EMF_WIFI_PASSWORD:=emf}"
+  : "${PI_EMF_WIFI_EAP:=ttls}"
+  : "${PI_EMF_WIFI_PHASE2_AUTH:=mschapv2}"
   : "${PI_TIMEZONE:=Europe/London}"
   : "${PI_LOCALE:=en_GB.UTF-8}"
   : "${YES_REALLY_WRITE:=0}"
@@ -194,6 +200,12 @@ PI_WIFI_COUNTRY=$(shell_single_quote "${PI_WIFI_COUNTRY}")
 PI_WIFI_SSID=$(shell_single_quote "${PI_WIFI_SSID}")
 PI_WIFI_PASSWORD=$(shell_single_quote "${PI_WIFI_PASSWORD}")
 PI_WIFI_HIDDEN=$(shell_single_quote "${PI_WIFI_HIDDEN}")
+PI_EMF_WIFI_ENABLE=$(shell_single_quote "${PI_EMF_WIFI_ENABLE}")
+PI_EMF_WIFI_SSID=$(shell_single_quote "${PI_EMF_WIFI_SSID}")
+PI_EMF_WIFI_USERNAME=$(shell_single_quote "${PI_EMF_WIFI_USERNAME}")
+PI_EMF_WIFI_PASSWORD=$(shell_single_quote "${PI_EMF_WIFI_PASSWORD}")
+PI_EMF_WIFI_EAP=$(shell_single_quote "${PI_EMF_WIFI_EAP}")
+PI_EMF_WIFI_PHASE2_AUTH=$(shell_single_quote "${PI_EMF_WIFI_PHASE2_AUTH}")
 PI_TIMEZONE=$(shell_single_quote "${PI_TIMEZONE}")
 PI_LOCALE=$(shell_single_quote "${PI_LOCALE}")
 AUTHORIZED_KEYS=$(shell_single_quote "${authorized_keys}")
@@ -249,24 +261,84 @@ ensure_admin_user() {
   fi
 }
 
-delete_stale_wifi_profile() {
-  if nmcli -t -f NAME connection show 2>/dev/null | grep -Fxq "\${PI_WIFI_SSID}"; then
-    log "removing stale Wi-Fi profile for \${PI_WIFI_SSID}"
-    nmcli connection delete "\${PI_WIFI_SSID}" >/dev/null 2>&1 || true
+delete_wifi_profile() {
+  local profile_name="\$1"
+
+  if [ -z "\${profile_name}" ]; then
+    return
+  fi
+
+  if nmcli -t -f NAME connection show 2>/dev/null | grep -Fxq "\${profile_name}"; then
+    log "removing stale Wi-Fi profile for \${profile_name}"
+    nmcli connection delete "\${profile_name}" >/dev/null 2>&1 || true
   fi
 }
 
+delete_stale_wifi_profile() {
+  delete_wifi_profile "\${PI_WIFI_SSID}"
+}
+
+configure_emf_wifi_profile() {
+  if [ "\${PI_EMF_WIFI_ENABLE}" != "1" ] || [ -z "\${PI_EMF_WIFI_SSID}" ]; then
+    return
+  fi
+
+  log "configuring EMF Wi-Fi profile for \${PI_EMF_WIFI_SSID}"
+  delete_wifi_profile "\${PI_EMF_WIFI_SSID}"
+
+  nmcli connection add \
+    type wifi \
+    ifname "*" \
+    con-name "\${PI_EMF_WIFI_SSID}" \
+    ssid "\${PI_EMF_WIFI_SSID}" >/dev/null
+
+  nmcli connection modify "\${PI_EMF_WIFI_SSID}" \
+    connection.autoconnect yes \
+    connection.autoconnect-priority 10 \
+    wifi-sec.key-mgmt wpa-eap \
+    802-1x.eap "\${PI_EMF_WIFI_EAP}" \
+    802-1x.identity "\${PI_EMF_WIFI_USERNAME}" \
+    802-1x.password "\${PI_EMF_WIFI_PASSWORD}" \
+    802-1x.password-flags 0 \
+    802-1x.phase2-auth "\${PI_EMF_WIFI_PHASE2_AUTH}"
+}
+
+try_emf_wifi_connection() {
+  if [ "\${PI_EMF_WIFI_ENABLE}" != "1" ] || [ -z "\${PI_EMF_WIFI_SSID}" ]; then
+    return 1
+  fi
+
+  for attempt in \$(seq 1 12); do
+    if nmcli connection up "\${PI_EMF_WIFI_SSID}"; then
+      return 0
+    fi
+    log "EMF Wi-Fi connect attempt \${attempt} failed; retrying"
+    sleep 5
+  done
+
+  return 1
+}
+
 configure_wifi() {
-  if [ -z "\${PI_WIFI_SSID}" ]; then
+  if [ -z "\${PI_WIFI_SSID}" ] && [ "\${PI_EMF_WIFI_ENABLE}" != "1" ]; then
     log "no Wi-Fi SSID configured; assuming Ethernet or existing network"
     return
   fi
 
-  log "configuring Wi-Fi for \${PI_WIFI_SSID}"
+  log "configuring Wi-Fi"
   raspi-config nonint do_wifi_country "\${PI_WIFI_COUNTRY}" || true
   rfkill unblock wifi || true
   systemctl start NetworkManager || true
   nmcli radio wifi on || true
+  nmcli dev wifi rescan >/dev/null 2>&1 || true
+  configure_emf_wifi_profile
+
+  if [ -z "\${PI_WIFI_SSID}" ]; then
+    try_emf_wifi_connection || log "EMF Wi-Fi did not connect; continuing in case Ethernet is available"
+    return
+  fi
+
+  log "configuring primary Wi-Fi for \${PI_WIFI_SSID}"
   delete_stale_wifi_profile
 
   local hidden_args=()
@@ -289,6 +361,7 @@ configure_wifi() {
     sleep 5
   done
 
+  try_emf_wifi_connection && return
   log "Wi-Fi did not connect; continuing in case Ethernet is available"
 }
 

@@ -58,6 +58,11 @@ On macOS, the script auto-detects the normal app-bundle executable at
    - `PI_WIFI_COUNTRY`
    - `PI_TIMEZONE`
 
+   The image also creates an EMF event Wi-Fi profile by default. It uses the
+   `emf` enterprise SSID with the public `emf`/`emf` login from
+   `PI_EMF_WIFI_*` settings. Set `PI_EMF_WIFI_ENABLE="0"` if the Pi should not
+   keep that fallback profile.
+
    If using `SSH_AUTHORIZED_KEYS_FILE`, set it to an absolute path.
 
 3. Find the SD-card device.
