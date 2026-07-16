@@ -74,6 +74,10 @@ globals:
     type: bool
     restore_value: false
     initial_value: "false"
+  - id: ap_last_client_activity_ms
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
 
 script:
   - id: clear_and_sleep_epaper
@@ -95,7 +99,11 @@ interval:
               auto now = id(ntp_time).now();
               if (!now.is_valid()) {
                 int diagnostic_state = 0;
-                if (esphome::wifi::global_wifi_component->is_connected()) {
+                if (esphome::wifi::global_wifi_component->is_disabled()) {
+                  diagnostic_state = 5;
+                } else if (esphome::wifi::global_wifi_component->is_ap_active()) {
+                  diagnostic_state = 4;
+                } else if (esphome::wifi::global_wifi_component->is_connected()) {
                   diagnostic_state = 1;
                   auto addresses = esphome::wifi::global_wifi_component->wifi_sta_ip_addresses();
                   if (addresses[0].is_set()) {
@@ -130,6 +138,35 @@ interval:
           then:
             - component.update: epaper_display
 
+  - interval: 10s
+    then:
+      - if:
+          condition:
+            lambda: |-
+              if (!esphome::wifi::global_wifi_component->is_ap_active()) return false;
+
+              uint32_t now_ms = millis();
+              if (WiFi.softAPgetStationNum() > 0) {
+                id(ap_last_client_activity_ms) = now_ms;
+                return false;
+              }
+
+              if (id(ap_last_client_activity_ms) == 0) {
+                id(ap_last_client_activity_ms) = now_ms;
+                return false;
+              }
+
+              // Shut down an unused AP ten minutes after boot or after the
+              // last associated client leaves. Rebooting starts it again.
+              return now_ms - id(ap_last_client_activity_ms) >= 600000UL;
+          then:
+            - wifi.disable
+            - lambda: |-
+                id(last_diagnostic_state) = 5;
+                id(last_diagnostic_refresh_ms) = millis();
+                id(epaper_display).set_full_refresh_next();
+            - component.update: epaper_display
+
 button:
   - platform: template
     name: "Refresh Display"
@@ -143,6 +180,43 @@ button:
             id(last_rendered_second_key) = minute_key * 60 + now.second;
           }
           id(epaper_display).set_full_refresh_next();
+      - component.update: epaper_display
+
+datetime:
+  - platform: template
+    type: datetime
+    id: manual_clock_time
+    name: "Set Clock Time"
+    update_interval: 1s
+    lambda: |-
+      auto now = id(ntp_time).now();
+      if (!now.is_valid()) return {};
+      return now;
+    set_action:
+      - lambda: |-
+          // The web entity supplies local wall time. Convert it using the
+          // configured timezone before updating the Pico's system clock.
+          x.recalc_timestamp_local();
+          if (x.timestamp < 1546300800) {
+            ESP_LOGW("manual_time", "Rejected invalid date/time");
+            return;
+          }
+
+          struct timeval time_value {
+            .tv_sec = x.timestamp,
+            .tv_usec = 0,
+          };
+          struct timezone timezone_value = {0, 0};
+          if (settimeofday(&time_value, &timezone_value) != 0) {
+            ESP_LOGW("manual_time", "Could not set the system clock");
+            return;
+          }
+
+          id(last_rendered_second_key) = -1;
+          id(last_full_refresh_minute_key) = -1;
+          id(last_diagnostic_state) = 3;
+          id(epaper_display).set_full_refresh_next();
+      - component.update: manual_clock_time
       - component.update: epaper_display
 
 binary_sensor:
@@ -279,7 +353,7 @@ font:
   - file: "fonts/5x7.bdf"
     id: diagnostic_font
     glyphs:
-      - " WIFCONEGTKYSMP0123456789."
+      - " ABCDEFGIKLMNOPRSTUWY0123456789.:"
 
 display:
   - platform: pico_epaper_4in2_v2
@@ -306,14 +380,28 @@ display:
 
       it.fill(COLOR_OFF);
 
-      if (!esphome::wifi::global_wifi_component->is_connected()) {
-        it.print(CENTER_X, 132, id(diagnostic_font), COLOR_ON, TextAlign::TOP_CENTER, "WIFI");
-        it.print(CENTER_X, 145, id(diagnostic_font), COLOR_ON, TextAlign::TOP_CENTER, "CONNECTING");
-        return;
-      }
-
       auto now = id(ntp_time).now();
       if (!now.is_valid()) {
+        if (esphome::wifi::global_wifi_component->is_disabled()) {
+          it.print(CENTER_X, 132, id(diagnostic_font), COLOR_ON, TextAlign::TOP_CENTER, "AP OFF");
+          it.print(CENTER_X, 152, id(diagnostic_font), COLOR_ON, TextAlign::TOP_CENTER, "REBOOT TO SET TIME");
+          return;
+        }
+
+        if (esphome::wifi::global_wifi_component->is_ap_active()) {
+          it.print(CENTER_X, 112, id(diagnostic_font), COLOR_ON, TextAlign::TOP_CENTER, "PICO CLOCK AP");
+          it.print(CENTER_X, 132, id(diagnostic_font), COLOR_ON, TextAlign::TOP_CENTER, "PICO CLOCK SETUP");
+          it.print(CENTER_X, 152, id(diagnostic_font), COLOR_ON, TextAlign::TOP_CENTER, "192.168.4.1");
+          it.print(CENTER_X, 172, id(diagnostic_font), COLOR_ON, TextAlign::TOP_CENTER, "SET TIME IN WEB");
+          return;
+        }
+
+        if (!esphome::wifi::global_wifi_component->is_connected()) {
+          it.print(CENTER_X, 132, id(diagnostic_font), COLOR_ON, TextAlign::TOP_CENTER, "WIFI");
+          it.print(CENTER_X, 145, id(diagnostic_font), COLOR_ON, TextAlign::TOP_CENTER, "CONNECTING");
+          return;
+        }
+
         auto addresses = esphome::wifi::global_wifi_component->wifi_sta_ip_addresses();
         char ip_text[esphome::network::IP_ADDRESS_BUFFER_SIZE] = "NO IP";
         if (addresses[0].is_set()) {

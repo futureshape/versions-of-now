@@ -47,6 +47,19 @@ minute changes force a full refresh to keep the panel clean. During startup,
 compact diagnostics show Wi-Fi and time-sync status, with diagnostic refreshes
 limited to once per minute.
 
+The Pico starts the `Pico Clock Setup` access point immediately and does not
+attempt to join another Wi-Fi network. Its password is the `web_password` value
+from `esphome/secrets.yaml`. Connect to that network and open
+`http://192.168.4.1/`; the local web UI does not require a separate login. It
+includes a `Set Clock Time` date/time control. Values entered there are
+interpreted in the configured `timezone`.
+
+The firmware checks the Pico W's associated AP-client count every 10 seconds.
+If no client has been associated for 10 minutes, it turns Wi-Fi off. The clock
+continues running after its time has been set; reboot the Pico to make the AP
+available again. If the AP times out before time is set, the display shows that
+a reboot is required.
+
 The board's KEY0 and KEY1 buttons are configured as active-low GPIO inputs with
 pull-ups. Pressing either button stops future display updates, clears the panel
 to white with a full refresh, and sends the Waveshare deep-sleep command. This
@@ -78,9 +91,9 @@ paths, including the older 4.2 inch sequence and the `EPD_4in2b_V2` B/R/BWR
 sequence. Those did not match the demo that worked on this hardware.
 
 Unlike the ESP32 clocks, this Pico W config uses `shared/network-pico.yaml`.
-It keeps Wi-Fi, OTA, and SNTP, but deliberately omits `web_server` so the RP2040
-Arduino build does not pull in `ESPAsyncWebServer` and its extra PlatformIO
-platform dependency checks.
+It keeps AP Wi-Fi, OTA, the system-clock interface, and a local version 3 web
+server. The bundled local web assets are intentional: the clock UI must work
+without internet access.
 
 The font sizes are family-specific so wide faces such as Pacifico and Permanent
 Marker stay inside the 400 pixel panel while narrower faces can remain larger.
