@@ -19,8 +19,8 @@ wifi:
       eap:
         username: "emf"
         password: "emf"
-  # These clocks only need Wi-Fi long enough to obtain time and OTA access.
-  # Keep them running if the station connection later goes away.
+  # Keep the station available for later NTP updates and OTA access. Each
+  # clock continues from its local system time if the connection drops.
   reboot_timeout: 0s
 
 web_server:

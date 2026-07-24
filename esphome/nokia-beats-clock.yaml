@@ -101,13 +101,13 @@ display:
 
       it.fill(COLOR_OFF);
 
-      if (!esphome::wifi::global_wifi_component->is_connected()) {
+      auto now = id(ntp_time).utcnow();
+      if (!now.is_valid() && !esphome::wifi::global_wifi_component->is_connected()) {
         it.print(42, 12, id(label_font), TextAlign::TOP_CENTER, "WIFI");
         it.print(42, 23, id(label_font), TextAlign::TOP_CENTER, "CONNECTING");
         return;
       }
 
-      auto now = id(ntp_time).utcnow();
       if (!now.is_valid()) {
         auto addresses = esphome::wifi::global_wifi_component->wifi_sta_ip_addresses();
         char ip_text[esphome::network::IP_ADDRESS_BUFFER_SIZE] = "NO IP";

@@ -230,6 +230,12 @@ interval:
             id(manual_display_mode) = 0;
             display_code = 50000;
             set_startup_position_digits();
+          } else if (id(ntp_time).now().is_valid()) {
+            id(manual_display_mode) = 0;
+            auto now = id(ntp_time).now();
+            int minute_of_day = now.hour * 60 + now.minute;
+            display_code = 10000 + minute_of_day;
+            set_time(now);
           } else if (!esphome::wifi::global_wifi_component->is_connected()) {
             id(manual_display_mode) = 0;
             wifi_connected_at = 0;

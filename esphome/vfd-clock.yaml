@@ -133,7 +133,15 @@ interval:
             return;
           }
 
-          if (!esphome::wifi::global_wifi_component->is_connected()) {
+          auto now = id(ntp_time).now();
+          if (now.is_valid()) {
+            char time_text[9];
+            snprintf(time_text, sizeof(time_text), "%02d:%02d:%02d", now.hour, now.minute, now.second);
+
+            display_code = 40000 + now.hour * 3600 + now.minute * 60 + now.second;
+            center_into(time_text, row1);
+            render_seconds_bar(now.second, row2);
+          } else if (!esphome::wifi::global_wifi_component->is_connected()) {
             int dot_count = (millis() / 1000) % 4;
             char dots[DISPLAY_COLUMNS + 1];
             for (int i = 0; i < DISPLAY_COLUMNS; i++) {
@@ -148,25 +156,15 @@ interval:
             center_into("CONNECTING TO WIFI", row1);
             center_into(dots, row2);
           } else {
-            auto now = id(ntp_time).now();
-            if (!now.is_valid()) {
-              auto addresses = esphome::wifi::global_wifi_component->wifi_sta_ip_addresses();
-              char ip_text[esphome::network::IP_ADDRESS_BUFFER_SIZE] = "NO IP";
-              if (addresses[0].is_set()) {
-                addresses[0].str_to(ip_text);
-              }
-
-              display_code = 30000;
-              center_into("IP ADDRESS", row1);
-              center_into(ip_text, row2);
-            } else {
-              char time_text[9];
-              snprintf(time_text, sizeof(time_text), "%02d:%02d:%02d", now.hour, now.minute, now.second);
-
-              display_code = 40000 + now.hour * 3600 + now.minute * 60 + now.second;
-              center_into(time_text, row1);
-              render_seconds_bar(now.second, row2);
+            auto addresses = esphome::wifi::global_wifi_component->wifi_sta_ip_addresses();
+            char ip_text[esphome::network::IP_ADDRESS_BUFFER_SIZE] = "NO IP";
+            if (addresses[0].is_set()) {
+              addresses[0].str_to(ip_text);
             }
+
+            display_code = 30000;
+            center_into("IP ADDRESS", row1);
+            center_into(ip_text, row2);
           }
 
           if (!id(force_refresh_requested) && display_code == id(last_display_code)) {

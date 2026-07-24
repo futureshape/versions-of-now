@@ -248,13 +248,13 @@ interval:
             return;
           }
 
-          if (!esphome::wifi::global_wifi_component->is_connected()) {
+          auto now = id(ntp_time).now();
+          if (!now.is_valid() && !esphome::wifi::global_wifi_component->is_connected()) {
             id(last_observed_time_second) = -1;
             write_meters(0.0f, triangle_phase(now_ms, 4000));
             return;
           }
 
-          auto now = id(ntp_time).now();
           if (!now.is_valid()) {
             id(last_observed_time_second) = -1;
             write_meters(0.25f, triangle_phase(now_ms, 4000));

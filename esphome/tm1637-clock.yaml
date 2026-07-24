@@ -69,6 +69,14 @@ display:
       };
 
       uint32_t now_ms = millis();
+      auto now = id(ntp_time).now();
+      if (now.is_valid()) {
+        char time_text[7];
+        snprintf(time_text, sizeof(time_text), "%02d%02d%02d", now.hour, now.minute, now.second);
+        print_mapped(time_text, (1 << 1) | (1 << 3));
+        return;
+      }
+
       if (!esphome::wifi::global_wifi_component->is_connected()) {
         wifi_connected_at = 0;
         ip_groups_ready = false;
@@ -99,7 +107,6 @@ display:
         }
       }
 
-      auto now = id(ntp_time).now();
       bool show_startup_ip = now_ms - wifi_connected_at < STARTUP_IP_DEBUG_MS;
       if (!now.is_valid() || show_startup_ip) {
         uint32_t group_index = ((now_ms - wifi_connected_at) / IP_GROUP_MS) % 2;
